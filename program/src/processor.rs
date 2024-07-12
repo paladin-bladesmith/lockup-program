@@ -14,10 +14,10 @@ use {
         clock::Clock,
         entrypoint::ProgramResult,
         msg,
-        program::invoke_signed,
+        program::{invoke, invoke_signed},
         program_error::ProgramError,
         pubkey::Pubkey,
-        system_program,
+        system_instruction, system_program,
         sysvar::Sysvar,
     },
     spl_associated_token_account::get_associated_token_address_with_program_id,
@@ -302,7 +302,53 @@ fn process_withdraw(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramRes
 /// Processes an
 /// [InitializeEscrow](enum.PaladinLockupInstruction.html)
 /// instruction.
-fn process_initialize_escrow(_program_id: &Pubkey, _accounts: &[AccountInfo]) -> ProgramResult {
+fn process_initialize_escrow(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
+    let accounts_iter = &mut accounts.iter();
+
+    let escrow_info = next_account_info(accounts_iter)?;
+    let escrow_token_account_info = next_account_info(accounts_iter)?;
+    let mint_info = next_account_info(accounts_iter)?;
+    let _token_program_info = next_account_info(accounts_iter)?;
+
+    let (escrow_address, bump_seed) = get_escrow_address_and_bump_seed(program_id);
+    let bump_seed = [bump_seed];
+    let escrow_signer_seeds = collect_escrow_signer_seeds(&bump_seed);
+
+    // Ensure the provided escrow address is correct.
+    if !escrow_info.key.eq(&escrow_address) {
+        return Err(PaladinLockupError::IncorrectEscrowAddress.into());
+    }
+
+    // Ensure the provided escrow token account address is correct.
+    if !escrow_token_account_info
+        .key
+        .eq(&get_associated_token_address_with_program_id(
+            escrow_info.key,
+            mint_info.key,
+            &spl_token_2022::id(),
+        ))
+    {
+        return Err(PaladinLockupError::IncorrectEscrowTokenAccount.into());
+    }
+
+    // Assign the escrow account (no state to allocate).
+    invoke_signed(
+        &system_instruction::assign(escrow_info.key, program_id),
+        &[escrow_info.clone()],
+        &[&escrow_signer_seeds],
+    )?;
+
+    // Create the escrow token account.
+    invoke(
+        &spl_token_2022::instruction::initialize_account3(
+            &spl_token_2022::id(),
+            escrow_token_account_info.key,
+            mint_info.key,
+            escrow_info.key,
+        )?,
+        &[escrow_token_account_info.clone(), mint_info.clone()],
+    )?;
+
     Ok(())
 }
 
