@@ -23,6 +23,10 @@ pub(crate) fn collect_escrow_seeds<'a>() -> [&'a [u8]; 1] {
     [SEED_PREFIX_ESCROW]
 }
 
+pub(crate) fn collect_escrow_signer_seeds(bump_seed: &[u8]) -> [&[u8]; 2] {
+    [SEED_PREFIX_ESCROW, bump_seed]
+}
+
 /// A lockup account.
 #[derive(Clone, Copy, Debug, PartialEq, Pod, SplDiscriminate, Zeroable)]
 #[discriminator_hash_input("lockup::state::lockup")]
