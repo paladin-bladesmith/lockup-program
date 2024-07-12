@@ -5,5 +5,6 @@ mod entrypoint;
 pub mod error;
 pub mod instruction;
 pub mod processor;
+pub mod state;
 
 solana_program::declare_id!("Dbf7u6x15DhjMrBMunY3XoRWdByrCCt2dbyoPrCXN6SQ");
