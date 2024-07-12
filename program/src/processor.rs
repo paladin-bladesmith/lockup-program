@@ -17,6 +17,7 @@ use {
     },
     spl_associated_token_account::get_associated_token_address_with_program_id,
     spl_discriminator::SplDiscriminate,
+    spl_token_2022::{extension::StateWithExtensions, state::Account},
 };
 
 /// Processes a
@@ -111,7 +112,57 @@ fn process_lockup(
 /// Processes an
 /// [Unlock](enum.PaladinLockupInstruction.html)
 /// instruction.
-fn process_unlock(_program_id: &Pubkey, _accounts: &[AccountInfo]) -> ProgramResult {
+fn process_unlock(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
+    let accounts_iter = &mut accounts.iter();
+
+    let owner_info = next_account_info(accounts_iter)?;
+    let token_account_info = next_account_info(accounts_iter)?;
+    let lockup_info = next_account_info(accounts_iter)?;
+
+    // Ensure the owner account is a signer.
+    if !owner_info.is_signer {
+        return Err(ProgramError::MissingRequiredSignature);
+    }
+
+    // Ensure the provided owner is the owner of the depositor token account.
+    {
+        let token_account_data = token_account_info.try_borrow_data()?;
+        let token_account = StateWithExtensions::<Account>::unpack(&token_account_data)?;
+        if &token_account.base.owner != owner_info.key {
+            return Err(ProgramError::IncorrectAuthority);
+        }
+    }
+
+    // Ensure the lockup account is owned by the Paladin Lockup program.
+    if lockup_info.owner != program_id {
+        return Err(ProgramError::InvalidAccountOwner);
+    }
+
+    // Ensure the lockup account is initialized.
+    if !(lockup_info.data_len() == std::mem::size_of::<Lockup>()
+        && &lockup_info.try_borrow_data()?[0..8] == Lockup::SPL_DISCRIMINATOR_SLICE)
+    {
+        return Err(ProgramError::UninitializedAccount);
+    }
+
+    let mut data = lockup_info.try_borrow_mut_data()?;
+    let state = bytemuck::try_from_bytes_mut::<Lockup>(&mut data)
+        .map_err(|_| ProgramError::InvalidAccountData)?;
+
+    // Ensure the provided depositor account is the same as the lockup's
+    // depositor.
+    if state.depositor != *token_account_info.key {
+        return Err(ProgramError::IncorrectAuthority);
+    }
+
+    // Get the timestamp from the clock sysvar, and use it to override the end
+    // timestamp of the lockup, effectively unlocking the funds.
+    let clock = <Clock as Sysvar>::get()?;
+    let timestamp = clock.unix_timestamp as u64;
+    if state.lockup_end_timestamp > timestamp {
+        state.lockup_end_timestamp = timestamp;
+    }
+
     Ok(())
 }
 
