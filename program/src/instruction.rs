@@ -1,14 +1,13 @@
 //! Program instruction types.
 
 use {
-    crate::state::get_escrow_address,
+    crate::state::{get_escrow_address, get_escrow_token_account_address},
     solana_program::{
         instruction::{AccountMeta, Instruction},
         program_error::ProgramError,
         pubkey::Pubkey,
         system_program,
     },
-    spl_associated_token_account::get_associated_token_address_with_program_id,
 };
 
 /// Instructions supported by the Paladin Lockup program.
@@ -118,11 +117,7 @@ pub fn lockup(
     period_seconds: u64,
 ) -> Instruction {
     let escrow_address = get_escrow_address(&crate::id());
-    let escrow_token_account_address = get_associated_token_address_with_program_id(
-        &escrow_address,
-        mint_address,
-        &spl_token_2022::id(),
-    );
+    let escrow_token_account_address = get_escrow_token_account_address(&crate::id(), mint_address);
     let accounts = vec![
         AccountMeta::new_readonly(*owner_address, true),
         AccountMeta::new(*token_account_address, false),
@@ -166,11 +161,7 @@ pub fn withdraw(
     mint_address: &Pubkey,
 ) -> Instruction {
     let escrow_address = get_escrow_address(&crate::id());
-    let escrow_token_account_address = get_associated_token_address_with_program_id(
-        &escrow_address,
-        mint_address,
-        &spl_token_2022::id(),
-    );
+    let escrow_token_account_address = get_escrow_token_account_address(&crate::id(), mint_address);
     let accounts = vec![
         AccountMeta::new(*token_account_address, false),
         AccountMeta::new(*lockup_address, false),
@@ -188,11 +179,7 @@ pub fn withdraw(
 /// instruction.
 pub fn initialize_escrow(mint_address: &Pubkey) -> Instruction {
     let escrow_address = get_escrow_address(&crate::id());
-    let escrow_token_account_address = get_associated_token_address_with_program_id(
-        &escrow_address,
-        mint_address,
-        &spl_token_2022::id(),
-    );
+    let escrow_token_account_address = get_escrow_token_account_address(&crate::id(), mint_address);
     let accounts = vec![
         AccountMeta::new(escrow_address, false),
         AccountMeta::new(escrow_token_account_address, false),

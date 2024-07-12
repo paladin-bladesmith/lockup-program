@@ -5,7 +5,7 @@ mod setup;
 use {
     paladin_lockup_program::{
         error::PaladinLockupError,
-        state::{get_escrow_address, Lockup},
+        state::{get_escrow_address, get_escrow_token_account_address, Lockup},
     },
     setup::{setup, setup_escrow, setup_mint, setup_token_account},
     solana_program_test::*,
@@ -20,6 +20,7 @@ use {
     },
     spl_associated_token_account::get_associated_token_address_with_program_id,
     spl_discriminator::SplDiscriminate,
+    spl_token_2022::{extension::StateWithExtensions, state::Account as TokenAccount},
     test_case::test_matrix,
 };
 
@@ -66,15 +67,25 @@ async fn fail_owner_not_signer() {
 }
 
 #[tokio::test]
-async fn fail_incorrect_token_account_address() {
+async fn fail_incorrect_token_account() {
     let mint = Pubkey::new_unique();
 
     let owner = Keypair::new();
-    let token_account = Pubkey::new_unique(); // Incorrect address.
+    let token_account =
+        get_associated_token_address_with_program_id(&owner.pubkey(), &mint, &spl_token_2022::id());
 
     let lockup = Pubkey::new_unique();
 
     let mut context = setup().start_with_context().await;
+
+    // Set up a token account with invalid data.
+    {
+        context.set_account(
+            &token_account,
+            &AccountSharedData::new_data(100_000_000, &vec![5; 165], &spl_token_2022::id())
+                .unwrap(),
+        );
+    }
 
     let instruction = paladin_lockup_program::instruction::lockup(
         &owner.pubkey(),
@@ -101,10 +112,7 @@ async fn fail_incorrect_token_account_address() {
 
     assert_eq!(
         err,
-        TransactionError::InstructionError(
-            0,
-            InstructionError::Custom(PaladinLockupError::IncorrectTokenAccount as u32)
-        )
+        TransactionError::InstructionError(0, InstructionError::InvalidAccountData)
     );
 }
 
@@ -119,6 +127,7 @@ async fn fail_incorrect_lockup_owner() {
     let lockup = Pubkey::new_unique();
 
     let mut context = setup().start_with_context().await;
+    setup_token_account(&mut context, &token_account, &owner.pubkey(), &mint, 10_000).await;
 
     // Create the lockup account with the incorrect owner.
     {
@@ -171,6 +180,7 @@ async fn fail_lockup_not_enough_space() {
     let lockup = Pubkey::new_unique();
 
     let mut context = setup().start_with_context().await;
+    setup_token_account(&mut context, &token_account, &owner.pubkey(), &mint, 10_000).await;
 
     // Create the lockup account with not enough space.
     {
@@ -223,6 +233,7 @@ async fn fail_lockup_already_initialized() {
     let lockup = Pubkey::new_unique();
 
     let mut context = setup().start_with_context().await;
+    setup_token_account(&mut context, &token_account, &owner.pubkey(), &mint, 10_000).await;
 
     // Create the lockup account with initialized state.
     {
@@ -283,6 +294,7 @@ async fn fail_incorrect_escrow_address() {
     let lockup = Pubkey::new_unique();
 
     let mut context = setup().start_with_context().await;
+    setup_token_account(&mut context, &token_account, &owner.pubkey(), &mint, 10_000).await;
 
     // Set up the lockup account correctly.
     {
@@ -340,6 +352,7 @@ async fn fail_incorrect_escrow_token_account_address() {
     let lockup = Pubkey::new_unique();
 
     let mut context = setup().start_with_context().await;
+    setup_token_account(&mut context, &token_account, &owner.pubkey(), &mint, 10_000).await;
 
     // Set up the lockup account correctly.
     {
@@ -386,6 +399,24 @@ async fn fail_incorrect_escrow_token_account_address() {
     );
 }
 
+async fn check_token_account_balance(
+    context: &mut ProgramTestContext,
+    token_account_address: &Pubkey,
+    check_amount: u64,
+) {
+    let account = context
+        .banks_client
+        .get_account(*token_account_address)
+        .await
+        .expect("get_account")
+        .expect("account not found");
+    let actual_amount = StateWithExtensions::<TokenAccount>::unpack(&account.data)
+        .unwrap()
+        .base
+        .amount;
+    assert_eq!(actual_amount, check_amount);
+}
+
 #[test_matrix(
     (10_000, 100_000, 1_000_000),
     (30, 1_000, 5_000_000)
@@ -397,17 +428,25 @@ async fn success(amount: u64, period_seconds: u64) {
     let owner = Keypair::new();
     let token_account =
         get_associated_token_address_with_program_id(&owner.pubkey(), &mint, &spl_token_2022::id());
+    let token_account_starting_token_balance = amount;
 
     let escrow = get_escrow_address(&paladin_lockup_program::id());
     let escrow_token_account =
-        get_associated_token_address_with_program_id(&escrow, &mint, &spl_token_2022::id());
+        get_escrow_token_account_address(&paladin_lockup_program::id(), &mint);
 
     let lockup = Pubkey::new_unique();
 
     let mut context = setup().start_with_context().await;
     setup_escrow(&mut context, &escrow).await;
-    setup_token_account(&mut context, &token_account, &owner.pubkey(), &mint, 10_000).await;
-    setup_token_account(&mut context, &escrow_token_account, &escrow, &mint, 10_000).await;
+    setup_token_account(
+        &mut context,
+        &token_account,
+        &owner.pubkey(),
+        &mint,
+        token_account_starting_token_balance,
+    )
+    .await;
+    setup_token_account(&mut context, &escrow_token_account, &escrow, &mint, 0).await;
     setup_mint(&mut context, &mint, &Pubkey::new_unique(), 1_000_000).await;
 
     // Set up the lockup account correctly.
@@ -463,4 +502,13 @@ async fn success(amount: u64, period_seconds: u64) {
             (clock.unix_timestamp as u64).saturating_add(period_seconds)
         )
     );
+
+    // Validate tokens were transferred from the owner to the escrow.
+    check_token_account_balance(
+        &mut context,
+        &token_account,
+        token_account_starting_token_balance.saturating_sub(amount),
+    )
+    .await;
+    check_token_account_balance(&mut context, &escrow_token_account, amount).await;
 }

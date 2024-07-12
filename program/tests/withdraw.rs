@@ -5,7 +5,7 @@ mod setup;
 use {
     paladin_lockup_program::{
         error::PaladinLockupError,
-        state::{get_escrow_address, Lockup},
+        state::{get_escrow_address, get_escrow_token_account_address, Lockup},
     },
     setup::{setup, setup_escrow, setup_lockup, setup_mint, setup_token_account},
     solana_program_test::*,
@@ -310,6 +310,56 @@ async fn fail_incorrect_escrow_token_account_address() {
 }
 
 #[tokio::test]
+async fn fail_lockup_still_active() {
+    let mint = Pubkey::new_unique();
+
+    let owner = Keypair::new();
+    let token_account =
+        get_associated_token_address_with_program_id(&owner.pubkey(), &mint, &spl_token_2022::id());
+
+    let lockup = Pubkey::new_unique();
+
+    let mut context = setup().start_with_context().await;
+
+    let clock = context.banks_client.get_sysvar::<Clock>().await.unwrap();
+
+    setup_token_account(&mut context, &token_account, &owner.pubkey(), &mint, 10_000).await;
+    setup_lockup(
+        &mut context,
+        &lockup,
+        &token_account,
+        10_000,
+        clock.unix_timestamp as u64,
+        (clock.unix_timestamp as u64).saturating_add(1_000), // NOT unlocked.
+    )
+    .await;
+
+    let instruction = paladin_lockup_program::instruction::withdraw(&token_account, &lockup, &mint);
+
+    let transaction = Transaction::new_signed_with_payer(
+        &[instruction],
+        Some(&context.payer.pubkey()),
+        &[&context.payer],
+        context.last_blockhash,
+    );
+
+    let err = context
+        .banks_client
+        .process_transaction(transaction)
+        .await
+        .unwrap_err()
+        .unwrap();
+
+    assert_eq!(
+        err,
+        TransactionError::InstructionError(
+            0,
+            InstructionError::Custom(PaladinLockupError::LockupActive as u32)
+        )
+    );
+}
+
+#[tokio::test]
 async fn fail_incorrect_depositor() {
     let mint = Pubkey::new_unique();
 
@@ -373,7 +423,7 @@ async fn success() {
 
     let escrow = get_escrow_address(&paladin_lockup_program::id());
     let escrow_token_account =
-        get_associated_token_address_with_program_id(&escrow, &mint, &spl_token_2022::id());
+        get_escrow_token_account_address(&paladin_lockup_program::id(), &mint);
 
     let lockup = Pubkey::new_unique();
 

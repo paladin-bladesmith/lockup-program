@@ -4,7 +4,9 @@ mod setup;
 
 use {
     paladin_lockup_program::{
-        error::PaladinLockupError, instruction::initialize_escrow, state::get_escrow_address,
+        error::PaladinLockupError,
+        instruction::initialize_escrow,
+        state::{get_escrow_address, get_escrow_token_account_address},
     },
     setup::{setup, setup_mint},
     solana_program_test::*,
@@ -17,7 +19,6 @@ use {
         system_program,
         transaction::{Transaction, TransactionError},
     },
-    spl_associated_token_account::get_associated_token_address_with_program_id,
     spl_token_2022::{extension::StateWithExtensions, state::Account as TokenAccount},
 };
 
@@ -91,7 +92,7 @@ async fn success() {
 
     let escrow = get_escrow_address(&paladin_lockup_program::id());
     let escrow_token_account =
-        get_associated_token_address_with_program_id(&escrow, &mint, &spl_token_2022::id());
+        get_escrow_token_account_address(&paladin_lockup_program::id(), &mint);
 
     let mut context = setup().start_with_context().await;
     setup_mint(&mut context, &mint, &Pubkey::new_unique(), 1_000_000).await;
@@ -107,7 +108,7 @@ async fn success() {
         let lamports = rent.minimum_balance(TokenAccount::LEN);
         context.set_account(
             &escrow_token_account,
-            &AccountSharedData::new(lamports, TokenAccount::LEN, &spl_token_2022::id()),
+            &AccountSharedData::new(lamports, 0, &system_program::id()),
         );
     }
 
