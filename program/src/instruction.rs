@@ -2,6 +2,7 @@
 
 use {
     crate::state::{get_escrow_address, get_escrow_token_account_address},
+    shank::ShankInstruction,
     solana_program::{
         instruction::{AccountMeta, Instruction},
         program_error::ProgramError,
@@ -11,7 +12,8 @@ use {
 };
 
 /// Instructions supported by the Paladin Lockup program.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[rustfmt::skip]
+#[derive(Clone, Copy, Debug, PartialEq, ShankInstruction)]
 pub enum PaladinLockupInstruction {
     /// Lock up tokens in a lockup account for a specified period of time.
     ///
@@ -27,6 +29,38 @@ pub enum PaladinLockupInstruction {
     /// 4. `[w]` Escrow token account.
     /// 5. `[ ]` Token mint.
     /// 6. `[ ]` Token program.
+    #[account(
+        0,
+        signer,
+        name = "Depositor owner account"
+    )]
+    #[account(
+        1,
+        writable,
+        name = "Depositor token account"
+    )]
+    #[account(
+        2,
+        writable,
+        name = "Lockup account"
+    )]
+    #[account(
+        3,
+        name = "Escrow account"
+    )]
+    #[account(
+        4,
+        writable,
+        name = "Escrow token account"
+    )]
+    #[account(
+        5,
+        name = "Token mint"
+    )]
+    #[account(
+        6,
+        name = "Token program"
+    )]
     Lockup { amount: u64, period_seconds: u64 },
     /// Unlock a token lockup, enabling the tokens for withdrawal.
     ///
@@ -35,6 +69,20 @@ pub enum PaladinLockupInstruction {
     /// 0. `[s]` Depositor owner.
     /// 1. `[ ]` Depositor token account.
     /// 2. `[w]` Lockup account.
+    #[account(
+        0,
+        signer,
+        name = "Depositor owner account"
+    )]
+    #[account(
+        1,
+        name = "Depositor token account"
+    )]
+    #[account(
+        2,
+        writable,
+        name = "Lockup account"
+    )]
     Unlock,
     /// Withdraw tokens from a lockup account.
     ///
@@ -46,6 +94,33 @@ pub enum PaladinLockupInstruction {
     /// 3. `[w]` Escrow token account.
     /// 4. `[ ]` Token mint.
     /// 5. `[ ]` Token program.
+    #[account(
+        0,
+        writable,
+        name = "Depositor token account"
+    )]
+    #[account(
+        1,
+        writable,
+        name = "Lockup account"
+    )]
+    #[account(
+        2,
+        name = "Escrow account"
+    )]
+    #[account(
+        3,
+        writable,
+        name = "Escrow token account"
+    )]
+    #[account(
+        4,
+        name = "Token mint"
+    )]
+    #[account(
+        5,
+        name = "Token program"
+    )]
     Withdraw,
     /// Initialize the escrow account.
     ///
@@ -60,6 +135,24 @@ pub enum PaladinLockupInstruction {
     /// 1. `[w]` Escrow token account.
     /// 2. `[ ]` Token mint.
     /// 3. `[ ]` Token program.
+    #[account(
+        0,
+        writable,
+        name = "Escrow account"
+    )]
+    #[account(
+        1,
+        writable,
+        name = "Escrow token account"
+    )]
+    #[account(
+        2,
+        name = "Token mint"
+    )]
+    #[account(
+        3,
+        name = "Token program"
+    )]
     InitializeEscrow,
 }
 

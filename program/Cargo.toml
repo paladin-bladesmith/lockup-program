@@ -10,6 +10,7 @@ crate-type = ["cdylib", "lib"]
 
 [dependencies]
 bytemuck = { version = "1.16.1", features = ["derive"] }
+shank = "0.4.2"
 solana-program = "2.0.2"
 spl-discriminator = "0.3.0"
 spl-program-error = "0.5.0"
@@ -26,4 +27,4 @@ bpf-entrypoint = []
 test-sbf = []
 
 [package.metadata.solana]
-program-id = "Dbf7u6x15DhjMrBMunY3XoRWdByrCCt2dbyoPrCXN6SQ"
+program-id = "AAJBV83AXRjN5sEF8gWjyo6mVxLv822Mg1jYp1PZ8MCo"
