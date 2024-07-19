@@ -5,9 +5,9 @@ mod setup;
 use {
     paladin_lockup_program::{
         error::PaladinLockupError,
-        state::{get_escrow_authority_address, get_escrow_token_account_address, Lockup},
+        state::{get_escrow_authority_address, Lockup},
     },
-    setup::{setup, setup_escrow_authority, setup_mint, setup_token_account},
+    setup::{setup, setup_mint, setup_token_account},
     solana_program_test::*,
     solana_sdk::{
         account::{Account, AccountSharedData},
@@ -25,17 +25,76 @@ use {
 };
 
 #[tokio::test]
-async fn fail_incorrect_lockup_owner() {
+async fn fail_lockup_authority_not_signer() {
+    let lockup_authority = Keypair::new();
     let mint = Pubkey::new_unique();
 
-    let owner = Keypair::new();
-    let token_account =
-        get_associated_token_address_with_program_id(&owner.pubkey(), &mint, &spl_token_2022::id());
+    let token_owner = Keypair::new();
+    let token_account = get_associated_token_address_with_program_id(
+        &token_owner.pubkey(),
+        &mint,
+        &spl_token_2022::id(),
+    );
 
     let lockup = Pubkey::new_unique();
 
     let mut context = setup().start_with_context().await;
-    setup_token_account(&mut context, &token_account, &owner.pubkey(), &mint, 10_000).await;
+
+    let mut instruction = paladin_lockup_program::instruction::lockup(
+        &lockup_authority.pubkey(),
+        &token_owner.pubkey(),
+        &token_account,
+        &lockup,
+        &mint,
+        10_000,
+        10_000,
+        &spl_token_2022::id(),
+    );
+    instruction.accounts[0].is_signer = false; // Lockup authority is not a signer.
+
+    let transaction = Transaction::new_signed_with_payer(
+        &[instruction],
+        Some(&context.payer.pubkey()),
+        &[&context.payer, &token_owner], // Missing lockup authority.
+        context.last_blockhash,
+    );
+
+    let err = context
+        .banks_client
+        .process_transaction(transaction)
+        .await
+        .unwrap_err()
+        .unwrap();
+
+    assert_eq!(
+        err,
+        TransactionError::InstructionError(0, InstructionError::MissingRequiredSignature)
+    );
+}
+
+#[tokio::test]
+async fn fail_incorrect_lockup_owner() {
+    let lockup_authority = Keypair::new();
+    let mint = Pubkey::new_unique();
+
+    let token_owner = Keypair::new();
+    let token_account = get_associated_token_address_with_program_id(
+        &token_owner.pubkey(),
+        &mint,
+        &spl_token_2022::id(),
+    );
+
+    let lockup = Pubkey::new_unique();
+
+    let mut context = setup().start_with_context().await;
+    setup_token_account(
+        &mut context,
+        &token_account,
+        &token_owner.pubkey(),
+        &mint,
+        10_000,
+    )
+    .await;
 
     // Create the lockup account with the incorrect owner.
     {
@@ -49,18 +108,20 @@ async fn fail_incorrect_lockup_owner() {
     }
 
     let instruction = paladin_lockup_program::instruction::lockup(
-        &owner.pubkey(),
+        &lockup_authority.pubkey(),
+        &token_owner.pubkey(),
         &token_account,
         &lockup,
         &mint,
         10_000,
         10_000,
+        &spl_token_2022::id(),
     );
 
     let transaction = Transaction::new_signed_with_payer(
         &[instruction],
         Some(&context.payer.pubkey()),
-        &[&context.payer, &owner],
+        &[&context.payer, &lockup_authority, &token_owner],
         context.last_blockhash,
     );
 
@@ -79,16 +140,27 @@ async fn fail_incorrect_lockup_owner() {
 
 #[tokio::test]
 async fn fail_lockup_not_enough_space() {
+    let lockup_authority = Keypair::new();
     let mint = Pubkey::new_unique();
 
-    let owner = Keypair::new();
-    let token_account =
-        get_associated_token_address_with_program_id(&owner.pubkey(), &mint, &spl_token_2022::id());
+    let token_owner = Keypair::new();
+    let token_account = get_associated_token_address_with_program_id(
+        &token_owner.pubkey(),
+        &mint,
+        &spl_token_2022::id(),
+    );
 
     let lockup = Pubkey::new_unique();
 
     let mut context = setup().start_with_context().await;
-    setup_token_account(&mut context, &token_account, &owner.pubkey(), &mint, 10_000).await;
+    setup_token_account(
+        &mut context,
+        &token_account,
+        &token_owner.pubkey(),
+        &mint,
+        10_000,
+    )
+    .await;
 
     // Create the lockup account with not enough space.
     {
@@ -102,18 +174,20 @@ async fn fail_lockup_not_enough_space() {
     }
 
     let instruction = paladin_lockup_program::instruction::lockup(
-        &owner.pubkey(),
+        &lockup_authority.pubkey(),
+        &token_owner.pubkey(),
         &token_account,
         &lockup,
         &mint,
         10_000,
         10_000,
+        &spl_token_2022::id(),
     );
 
     let transaction = Transaction::new_signed_with_payer(
         &[instruction],
         Some(&context.payer.pubkey()),
-        &[&context.payer, &owner],
+        &[&context.payer, &lockup_authority, &token_owner],
         context.last_blockhash,
     );
 
@@ -132,16 +206,27 @@ async fn fail_lockup_not_enough_space() {
 
 #[tokio::test]
 async fn fail_lockup_already_initialized() {
+    let lockup_authority = Keypair::new();
     let mint = Pubkey::new_unique();
 
-    let owner = Keypair::new();
-    let token_account =
-        get_associated_token_address_with_program_id(&owner.pubkey(), &mint, &spl_token_2022::id());
+    let token_owner = Keypair::new();
+    let token_account = get_associated_token_address_with_program_id(
+        &token_owner.pubkey(),
+        &mint,
+        &spl_token_2022::id(),
+    );
 
     let lockup = Pubkey::new_unique();
 
     let mut context = setup().start_with_context().await;
-    setup_token_account(&mut context, &token_account, &owner.pubkey(), &mint, 10_000).await;
+    setup_token_account(
+        &mut context,
+        &token_account,
+        &token_owner.pubkey(),
+        &mint,
+        10_000,
+    )
+    .await;
 
     // Create the lockup account with initialized state.
     {
@@ -163,18 +248,20 @@ async fn fail_lockup_already_initialized() {
     }
 
     let instruction = paladin_lockup_program::instruction::lockup(
-        &owner.pubkey(),
+        &lockup_authority.pubkey(),
+        &token_owner.pubkey(),
         &token_account,
         &lockup,
         &mint,
         10_000,
         10_000,
+        &spl_token_2022::id(),
     );
 
     let transaction = Transaction::new_signed_with_payer(
         &[instruction],
         Some(&context.payer.pubkey()),
-        &[&context.payer, &owner],
+        &[&context.payer, &lockup_authority, &token_owner],
         context.last_blockhash,
     );
 
@@ -193,16 +280,27 @@ async fn fail_lockup_already_initialized() {
 
 #[tokio::test]
 async fn fail_incorrect_escrow_authority_address() {
+    let lockup_authority = Keypair::new();
     let mint = Pubkey::new_unique();
 
-    let owner = Keypair::new();
-    let token_account =
-        get_associated_token_address_with_program_id(&owner.pubkey(), &mint, &spl_token_2022::id());
+    let token_owner = Keypair::new();
+    let token_account = get_associated_token_address_with_program_id(
+        &token_owner.pubkey(),
+        &mint,
+        &spl_token_2022::id(),
+    );
 
     let lockup = Pubkey::new_unique();
 
     let mut context = setup().start_with_context().await;
-    setup_token_account(&mut context, &token_account, &owner.pubkey(), &mint, 10_000).await;
+    setup_token_account(
+        &mut context,
+        &token_account,
+        &token_owner.pubkey(),
+        &mint,
+        10_000,
+    )
+    .await;
 
     // Set up the lockup account correctly.
     {
@@ -217,19 +315,21 @@ async fn fail_incorrect_escrow_authority_address() {
     }
 
     let mut instruction = paladin_lockup_program::instruction::lockup(
-        &owner.pubkey(),
+        &lockup_authority.pubkey(),
+        &token_owner.pubkey(),
         &token_account,
         &lockup,
         &mint,
         10_000,
         10_000,
+        &spl_token_2022::id(),
     );
-    instruction.accounts[3].pubkey = Pubkey::new_unique(); // Incorrect escrow authority address.
+    instruction.accounts[4].pubkey = Pubkey::new_unique(); // Incorrect escrow authority address.
 
     let transaction = Transaction::new_signed_with_payer(
         &[instruction],
         Some(&context.payer.pubkey()),
-        &[&context.payer, &owner],
+        &[&context.payer, &lockup_authority, &token_owner],
         context.last_blockhash,
     );
 
@@ -251,16 +351,27 @@ async fn fail_incorrect_escrow_authority_address() {
 
 #[tokio::test]
 async fn fail_incorrect_escrow_token_account_address() {
+    let lockup_authority = Keypair::new();
     let mint = Pubkey::new_unique();
 
-    let owner = Keypair::new();
-    let token_account =
-        get_associated_token_address_with_program_id(&owner.pubkey(), &mint, &spl_token_2022::id());
+    let token_owner = Keypair::new();
+    let token_account = get_associated_token_address_with_program_id(
+        &token_owner.pubkey(),
+        &mint,
+        &spl_token_2022::id(),
+    );
 
     let lockup = Pubkey::new_unique();
 
     let mut context = setup().start_with_context().await;
-    setup_token_account(&mut context, &token_account, &owner.pubkey(), &mint, 10_000).await;
+    setup_token_account(
+        &mut context,
+        &token_account,
+        &token_owner.pubkey(),
+        &mint,
+        10_000,
+    )
+    .await;
 
     // Set up the lockup account correctly.
     {
@@ -275,19 +386,21 @@ async fn fail_incorrect_escrow_token_account_address() {
     }
 
     let mut instruction = paladin_lockup_program::instruction::lockup(
-        &owner.pubkey(),
+        &lockup_authority.pubkey(),
+        &token_owner.pubkey(),
         &token_account,
         &lockup,
         &mint,
         10_000,
         10_000,
+        &spl_token_2022::id(),
     );
-    instruction.accounts[4].pubkey = Pubkey::new_unique(); // Incorrect escrow token account address.
+    instruction.accounts[5].pubkey = Pubkey::new_unique(); // Incorrect escrow token account address.
 
     let transaction = Transaction::new_signed_with_payer(
         &[instruction],
         Some(&context.payer.pubkey()),
-        &[&context.payer, &owner],
+        &[&context.payer, &lockup_authority, &token_owner],
         context.last_blockhash,
     );
 
@@ -331,25 +444,31 @@ async fn check_token_account_balance(
 )]
 #[tokio::test]
 async fn success(amount: u64, period_seconds: u64) {
+    let lockup_authority = Keypair::new();
     let mint = Pubkey::new_unique();
 
-    let owner = Keypair::new();
-    let token_account =
-        get_associated_token_address_with_program_id(&owner.pubkey(), &mint, &spl_token_2022::id());
+    let token_owner = Keypair::new();
+    let token_account = get_associated_token_address_with_program_id(
+        &token_owner.pubkey(),
+        &mint,
+        &spl_token_2022::id(),
+    );
     let token_account_starting_token_balance = amount;
 
     let escrow_authority = get_escrow_authority_address(&paladin_lockup_program::id());
-    let escrow_token_account =
-        get_escrow_token_account_address(&paladin_lockup_program::id(), &mint);
+    let escrow_token_account = get_associated_token_address_with_program_id(
+        &escrow_authority,
+        &mint,
+        &spl_token_2022::id(),
+    );
 
     let lockup = Pubkey::new_unique();
 
     let mut context = setup().start_with_context().await;
-    setup_escrow_authority(&mut context, &escrow_authority).await;
     setup_token_account(
         &mut context,
         &token_account,
-        &owner.pubkey(),
+        &token_owner.pubkey(),
         &mint,
         token_account_starting_token_balance,
     )
@@ -377,18 +496,20 @@ async fn success(amount: u64, period_seconds: u64) {
     }
 
     let instruction = paladin_lockup_program::instruction::lockup(
-        &owner.pubkey(),
+        &lockup_authority.pubkey(),
+        &token_owner.pubkey(),
         &token_account,
         &lockup,
         &mint,
         amount,
         period_seconds,
+        &spl_token_2022::id(),
     );
 
     let transaction = Transaction::new_signed_with_payer(
         &[instruction],
         Some(&context.payer.pubkey()),
-        &[&context.payer, &owner],
+        &[&context.payer, &lockup_authority, &token_owner],
         context.last_blockhash,
     );
 
@@ -412,14 +533,14 @@ async fn success(amount: u64, period_seconds: u64) {
         bytemuck::from_bytes::<Lockup>(&lockup_account.data),
         &Lockup::new(
             amount,
-            &token_account,
+            &lockup_authority.pubkey(),
             clock.unix_timestamp as u64,
             (clock.unix_timestamp as u64).saturating_add(period_seconds),
             &mint,
         )
     );
 
-    // Validate tokens were transferred from the owner to the escrow.
+    // Validate tokens were transferred from the token account to the escrow.
     check_token_account_balance(
         &mut context,
         &token_account,

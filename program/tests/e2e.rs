@@ -7,14 +7,13 @@ mod setup;
 use {
     paladin_lockup_program::{
         error::PaladinLockupError,
-        state::{get_escrow_authority_address, get_escrow_token_account_address, Lockup},
+        state::{get_escrow_authority_address, Lockup},
     },
     setup::{setup, setup_mint, setup_token_account},
     solana_program_test::*,
     solana_sdk::{
         clock::Clock,
         instruction::{Instruction, InstructionError},
-        program_pack::Pack,
         pubkey::Pubkey,
         signature::Keypair,
         signer::Signer,
@@ -113,8 +112,11 @@ async fn test_e2e() {
     let bob_token_account_starting_token_balance = 10_000;
 
     let escrow_authority = get_escrow_authority_address(&paladin_lockup_program::id());
-    let escrow_token_account =
-        get_escrow_token_account_address(&paladin_lockup_program::id(), &mint);
+    let escrow_token_account = get_associated_token_address_with_program_id(
+        &escrow_authority,
+        &mint,
+        &spl_token_2022::id(),
+    );
 
     let mut context = setup().start_with_context().await;
     let payer = context.payer.insecure_clone();
@@ -137,31 +139,15 @@ async fn test_e2e() {
             bob_token_account_starting_token_balance,
         )
         .await;
-        setup_mint(&mut context, &mint, &Pubkey::new_unique(), 1_000_000).await;
-    }
-
-    // Initialize the escrow.
-    {
-        // Fund/allocate the escrow authority account, then invoke the lockup program.
-        let rent = context.banks_client.get_rent().await.expect("get_rent");
-        send_transaction(
+        setup_token_account(
             &mut context,
-            &[
-                system_instruction::transfer(
-                    &payer.pubkey(),
-                    &escrow_authority,
-                    rent.minimum_balance(0),
-                ),
-                system_instruction::transfer(
-                    &payer.pubkey(),
-                    &escrow_token_account,
-                    rent.minimum_balance(TokenAccount::LEN),
-                ),
-                paladin_lockup_program::instruction::initialize_escrow(&mint),
-            ],
-            &[&payer],
+            &escrow_token_account,
+            &escrow_authority,
+            &mint,
+            0,
         )
         .await;
+        setup_mint(&mut context, &mint, &Pubkey::new_unique(), 1_000_000).await;
     }
 
     // Create a lockup for Alice.
@@ -190,11 +176,13 @@ async fn test_e2e() {
                 system_instruction::assign(&alice_lockup.pubkey(), &paladin_lockup_program::id()),
                 paladin_lockup_program::instruction::lockup(
                     &alice.pubkey(),
+                    &alice.pubkey(),
                     &alice_token_account,
                     &alice_lockup.pubkey(),
                     &mint,
                     alice_lockup_amount,
                     alice_lockup_period_seconds,
+                    &spl_token_2022::id(),
                 ),
             ],
             &[&payer, &alice, &alice_lockup],
@@ -210,7 +198,7 @@ async fn test_e2e() {
             &alice_lockup.pubkey(),
             &Lockup::new(
                 alice_lockup_amount,
-                &alice_token_account,
+                &alice.pubkey(),
                 expected_lockup_start,
                 expected_lockup_end,
                 &mint,
@@ -240,11 +228,14 @@ async fn test_e2e() {
         send_transaction_with_expected_err(
             &mut context,
             &[paladin_lockup_program::instruction::withdraw(
+                &alice.pubkey(),
+                &alice.pubkey(),
                 &alice_token_account,
                 &alice_lockup.pubkey(),
                 &mint,
+                &spl_token_2022::id(),
             )],
-            &[&payer],
+            &[&payer, &alice],
             TransactionError::InstructionError(
                 0,
                 InstructionError::Custom(PaladinLockupError::LockupActive as u32),
@@ -267,11 +258,14 @@ async fn test_e2e() {
         send_transaction(
             &mut context,
             &[paladin_lockup_program::instruction::withdraw(
+                &alice.pubkey(),
+                &alice.pubkey(),
                 &alice_token_account,
                 &alice_lockup.pubkey(),
                 &mint,
+                &spl_token_2022::id(),
             )],
-            &[&payer],
+            &[&payer, &alice],
         )
         .await;
 
@@ -317,11 +311,13 @@ async fn test_e2e() {
                 system_instruction::assign(&bob_lockup.pubkey(), &paladin_lockup_program::id()),
                 paladin_lockup_program::instruction::lockup(
                     &bob.pubkey(),
+                    &bob.pubkey(),
                     &bob_token_account,
                     &bob_lockup.pubkey(),
                     &mint,
                     bob_lockup_amount,
                     bob_lockup_period_seconds,
+                    &spl_token_2022::id(),
                 ),
             ],
             &[&payer, &bob, &bob_lockup],
@@ -337,7 +333,7 @@ async fn test_e2e() {
             &bob_lockup.pubkey(),
             &Lockup::new(
                 bob_lockup_amount,
-                &bob_token_account,
+                &bob.pubkey(),
                 expected_lockup_start,
                 expected_lockup_end,
                 &mint,
@@ -367,11 +363,14 @@ async fn test_e2e() {
         send_transaction_with_expected_err(
             &mut context,
             &[paladin_lockup_program::instruction::withdraw(
+                &bob.pubkey(),
+                &bob.pubkey(),
                 &bob_token_account,
                 &bob_lockup.pubkey(),
                 &mint,
+                &spl_token_2022::id(),
             )],
-            &[&payer],
+            &[&payer, &bob],
             TransactionError::InstructionError(
                 0,
                 InstructionError::Custom(PaladinLockupError::LockupActive as u32),
@@ -392,7 +391,6 @@ async fn test_e2e() {
             &mut context,
             &[paladin_lockup_program::instruction::unlock(
                 &bob.pubkey(),
-                &bob_token_account,
                 &bob_lockup.pubkey(),
             )],
             &[&payer, &bob],
@@ -408,7 +406,7 @@ async fn test_e2e() {
             &bob_lockup.pubkey(),
             &Lockup::new(
                 bob_lockup_amount,
-                &bob_token_account,
+                &bob.pubkey(),
                 expected_lockup_start,
                 expected_lockup_end,
                 &mint,
@@ -422,11 +420,14 @@ async fn test_e2e() {
         send_transaction(
             &mut context,
             &[paladin_lockup_program::instruction::withdraw(
+                &bob.pubkey(),
+                &bob.pubkey(),
                 &bob_token_account,
                 &bob_lockup.pubkey(),
                 &mint,
+                &spl_token_2022::id(),
             )],
-            &[&payer],
+            &[&payer, &bob],
         )
         .await;
 

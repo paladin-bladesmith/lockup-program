@@ -1,13 +1,13 @@
 //! Program instruction types.
 
 use {
-    crate::state::{get_escrow_authority_address, get_escrow_token_account_address},
+    crate::state::get_escrow_authority_address,
     solana_program::{
         instruction::{AccountMeta, Instruction},
         program_error::ProgramError,
         pubkey::Pubkey,
-        system_program,
     },
+    spl_associated_token_account::get_associated_token_address_with_program_id,
 };
 
 /// Instructions supported by the Paladin Lockup program.
@@ -20,47 +20,38 @@ pub enum PaladinLockupInstruction {
     ///
     /// Accounts expected by this instruction:
     ///
-    /// 0. `[s]` Depositor owner.
-    /// 1. `[w]` Depositor token account.
-    /// 2. `[w]` Lockup account.
-    /// 3. `[ ]` Escrow authority.
-    /// 4. `[w]` Escrow token account.
-    /// 5. `[ ]` Token mint.
-    /// 6. `[ ]` Token program.
+    /// 0. `[s]` Lockup authority.
+    /// 1. `[s]` Token owner.
+    /// 2. `[w]` Depositor token account.
+    /// 3. `[w]` Lockup account.
+    /// 4. `[ ]` Escrow authority.
+    /// 5. `[w]` Escrow token account.
+    /// 6. `[ ]` Token mint.
+    /// 7. `[ ]` Token program.
     Lockup { amount: u64, period_seconds: u64 },
     /// Unlock a token lockup, enabling the tokens for withdrawal.
     ///
     /// Accounts expected by this instruction:
     ///
-    /// 0. `[s]` Depositor owner.
-    /// 1. `[ ]` Depositor token account.
-    /// 2. `[w]` Lockup account.
+    /// 0. `[s]` Lockup authority.
+    /// 1. `[w]` Lockup account.
     Unlock,
     /// Withdraw tokens from a lockup account.
     ///
+    /// Note this instruction accepts a destination account for both lamports
+    /// (from the closed lockup account's rent lamports) and tokens.
+    ///
     /// Accounts expected by this instruction:
     ///
-    /// 0. `[w]` Depositor token account.
-    /// 1. `[w]` Lockup account.
-    /// 2. `[ ]` Escrow authority.
-    /// 3. `[w]` Escrow token account.
-    /// 4. `[ ]` Token mint.
-    /// 5. `[ ]` Token program.
+    /// 0. `[s]` Lockup authority.
+    /// 1. `[w]` Lamport destination.
+    /// 2. `[w]` Token destination.
+    /// 3. `[w]` Lockup account.
+    /// 4. `[ ]` Escrow authority.
+    /// 5. `[w]` Escrow token account.
+    /// 6. `[ ]` Token mint.
+    /// 7. `[ ]` Token program.
     Withdraw,
-    /// Initialize the escrow account.
-    ///
-    /// Expects an uninitialized escrow account with enough rent-exempt
-    /// lamports to store escrow state, owned by the System program.
-    ///
-    /// This instruction is permissionless, but can only be invoked once.
-    ///
-    /// Accounts expected by this instruction:
-    ///
-    /// 0. `[w]` Escrow authority.
-    /// 1. `[w]` Escrow token account.
-    /// 2. `[ ]` Token mint.
-    /// 3. `[ ]` Token program.
-    InitializeEscrow,
 }
 
 impl PaladinLockupInstruction {
@@ -81,7 +72,6 @@ impl PaladinLockupInstruction {
             }
             Self::Unlock => vec![1],
             Self::Withdraw => vec![2],
-            Self::InitializeEscrow => vec![3],
         }
     }
 
@@ -99,7 +89,6 @@ impl PaladinLockupInstruction {
             }
             Some((&1, _)) => Ok(Self::Unlock),
             Some((&2, _)) => Ok(Self::Withdraw),
-            Some((&3, _)) => Ok(Self::InitializeEscrow),
             _ => Err(ProgramError::InvalidInstructionData),
         }
     }
@@ -108,24 +97,32 @@ impl PaladinLockupInstruction {
 /// Creates a
 /// [Lockup](enum.PaladinLockupInstruction.html)
 /// instruction.
+#[allow(clippy::too_many_arguments)]
 pub fn lockup(
-    owner_address: &Pubkey,
+    lockup_authority_address: &Pubkey,
+    token_owner_address: &Pubkey,
     token_account_address: &Pubkey,
     lockup_address: &Pubkey,
     mint_address: &Pubkey,
     amount: u64,
     period_seconds: u64,
+    token_program_id: &Pubkey,
 ) -> Instruction {
     let escrow_authority_address = get_escrow_authority_address(&crate::id());
-    let escrow_token_account_address = get_escrow_token_account_address(&crate::id(), mint_address);
+    let escrow_token_account_address = get_associated_token_address_with_program_id(
+        &escrow_authority_address,
+        mint_address,
+        token_program_id,
+    );
     let accounts = vec![
-        AccountMeta::new_readonly(*owner_address, true),
+        AccountMeta::new_readonly(*lockup_authority_address, true),
+        AccountMeta::new_readonly(*token_owner_address, true),
         AccountMeta::new(*token_account_address, false),
         AccountMeta::new(*lockup_address, false),
         AccountMeta::new_readonly(escrow_authority_address, false),
         AccountMeta::new(escrow_token_account_address, false),
         AccountMeta::new_readonly(*mint_address, false),
-        AccountMeta::new_readonly(spl_token_2022::id(), false),
+        AccountMeta::new_readonly(*token_program_id, false),
     ];
     let data = PaladinLockupInstruction::Lockup {
         amount,
@@ -138,14 +135,9 @@ pub fn lockup(
 /// Creates an
 /// [Unlock](enum.PaladinLockupInstruction.html)
 /// instruction.
-pub fn unlock(
-    owner_address: &Pubkey,
-    token_account_address: &Pubkey,
-    lockup_address: &Pubkey,
-) -> Instruction {
+pub fn unlock(lockup_authority_address: &Pubkey, lockup_address: &Pubkey) -> Instruction {
     let accounts = vec![
-        AccountMeta::new_readonly(*owner_address, true),
-        AccountMeta::new_readonly(*token_account_address, false),
+        AccountMeta::new_readonly(*lockup_authority_address, true),
         AccountMeta::new(*lockup_address, false),
     ];
     let data = PaladinLockupInstruction::Unlock.pack();
@@ -156,38 +148,30 @@ pub fn unlock(
 /// [Withdraw](enum.PaladinLockupInstruction.html)
 /// instruction.
 pub fn withdraw(
-    token_account_address: &Pubkey,
+    lockup_authority_address: &Pubkey,
+    lamport_destination_address: &Pubkey,
+    token_destination_address: &Pubkey,
     lockup_address: &Pubkey,
     mint_address: &Pubkey,
+    token_program_id: &Pubkey,
 ) -> Instruction {
     let escrow_authority_address = get_escrow_authority_address(&crate::id());
-    let escrow_token_account_address = get_escrow_token_account_address(&crate::id(), mint_address);
+    let escrow_token_account_address = get_associated_token_address_with_program_id(
+        &escrow_authority_address,
+        mint_address,
+        token_program_id,
+    );
     let accounts = vec![
-        AccountMeta::new(*token_account_address, false),
+        AccountMeta::new_readonly(*lockup_authority_address, true),
+        AccountMeta::new(*lamport_destination_address, false),
+        AccountMeta::new(*token_destination_address, false),
         AccountMeta::new(*lockup_address, false),
         AccountMeta::new_readonly(escrow_authority_address, false),
         AccountMeta::new(escrow_token_account_address, false),
         AccountMeta::new_readonly(*mint_address, false),
-        AccountMeta::new_readonly(spl_token_2022::id(), false),
+        AccountMeta::new_readonly(*token_program_id, false),
     ];
     let data = PaladinLockupInstruction::Withdraw.pack();
-    Instruction::new_with_bytes(crate::id(), &data, accounts)
-}
-
-/// Creates an
-/// [InitializeEscrow](enum.PaladinLockupInstruction.html)
-/// instruction.
-pub fn initialize_escrow(mint_address: &Pubkey) -> Instruction {
-    let escrow_authority_address = get_escrow_authority_address(&crate::id());
-    let escrow_token_account_address = get_escrow_token_account_address(&crate::id(), mint_address);
-    let accounts = vec![
-        AccountMeta::new(escrow_authority_address, false),
-        AccountMeta::new(escrow_token_account_address, false),
-        AccountMeta::new_readonly(*mint_address, false),
-        AccountMeta::new_readonly(spl_token_2022::id(), false),
-        AccountMeta::new_readonly(system_program::id(), false),
-    ];
-    let data = PaladinLockupInstruction::InitializeEscrow.pack();
     Instruction::new_with_bytes(crate::id(), &data, accounts)
 }
 
@@ -217,10 +201,5 @@ mod tests {
     #[test]
     fn test_pack_unpack_withdraw() {
         test_pack_unpack(PaladinLockupInstruction::Withdraw);
-    }
-
-    #[test]
-    fn test_pack_unpack_initialize_escrow() {
-        test_pack_unpack(PaladinLockupInstruction::InitializeEscrow);
     }
 }

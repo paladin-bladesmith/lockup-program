@@ -115,7 +115,7 @@ pub async fn setup_system_account(
 pub async fn setup_lockup(
     context: &mut ProgramTestContext,
     address: &Pubkey,
-    depository: &Pubkey,
+    authority: &Pubkey,
     amount: u64,
     lockup_start_timestamp: u64,
     lockup_end_timestamp: u64,
@@ -123,7 +123,7 @@ pub async fn setup_lockup(
 ) {
     let state = Lockup::new(
         amount,
-        depository,
+        authority,
         lockup_start_timestamp,
         lockup_end_timestamp,
         mint_address,
@@ -141,15 +141,5 @@ pub async fn setup_lockup(
             owner: paladin_lockup_program::id(),
             ..Account::default()
         }),
-    );
-}
-
-pub async fn setup_escrow_authority(context: &mut ProgramTestContext, address: &Pubkey) {
-    let rent = context.banks_client.get_rent().await.unwrap();
-    let lamports = rent.minimum_balance(0);
-
-    context.set_account(
-        address,
-        &AccountSharedData::new(lamports, 0, &paladin_lockup_program::id()),
     );
 }
