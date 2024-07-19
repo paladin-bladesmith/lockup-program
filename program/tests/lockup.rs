@@ -5,7 +5,7 @@ mod setup;
 use {
     paladin_lockup_program::{
         error::PaladinLockupError,
-        state::{get_escrow_authority_address, get_escrow_token_account_address, Lockup},
+        state::{get_escrow_authority_address, Lockup},
     },
     setup::{setup, setup_mint, setup_token_account},
     solana_program_test::*,
@@ -65,6 +65,7 @@ async fn fail_incorrect_lockup_owner() {
         &mint,
         10_000,
         10_000,
+        &spl_token_2022::id(),
     );
 
     let transaction = Transaction::new_signed_with_payer(
@@ -128,6 +129,7 @@ async fn fail_lockup_not_enough_space() {
         &mint,
         10_000,
         10_000,
+        &spl_token_2022::id(),
     );
 
     let transaction = Transaction::new_signed_with_payer(
@@ -199,6 +201,7 @@ async fn fail_lockup_already_initialized() {
         &mint,
         10_000,
         10_000,
+        &spl_token_2022::id(),
     );
 
     let transaction = Transaction::new_signed_with_payer(
@@ -263,6 +266,7 @@ async fn fail_incorrect_escrow_authority_address() {
         &mint,
         10_000,
         10_000,
+        &spl_token_2022::id(),
     );
     instruction.accounts[3].pubkey = Pubkey::new_unique(); // Incorrect escrow authority address.
 
@@ -331,6 +335,7 @@ async fn fail_incorrect_escrow_token_account_address() {
         &mint,
         10_000,
         10_000,
+        &spl_token_2022::id(),
     );
     instruction.accounts[4].pubkey = Pubkey::new_unique(); // Incorrect escrow token account address.
 
@@ -392,8 +397,11 @@ async fn success(amount: u64, period_seconds: u64) {
     let token_account_starting_token_balance = amount;
 
     let escrow_authority = get_escrow_authority_address(&paladin_lockup_program::id());
-    let escrow_token_account =
-        get_escrow_token_account_address(&paladin_lockup_program::id(), &mint);
+    let escrow_token_account = get_associated_token_address_with_program_id(
+        &escrow_authority,
+        &mint,
+        &spl_token_2022::id(),
+    );
 
     let lockup = Pubkey::new_unique();
 
@@ -435,6 +443,7 @@ async fn success(amount: u64, period_seconds: u64) {
         &mint,
         amount,
         period_seconds,
+        &spl_token_2022::id(),
     );
 
     let transaction = Transaction::new_signed_with_payer(

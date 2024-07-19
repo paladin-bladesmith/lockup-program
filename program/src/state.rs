@@ -8,10 +8,6 @@ use {
 /// of the Paladin Lockup program's escrow authority.
 /// Seeds: `"escrow_authority"`.
 pub const SEED_PREFIX_ESCROW_AUTHORITY: &[u8] = b"escrow_authority";
-/// The seed prefix (`"escrow_token_account"`) in bytes used to derive the
-/// address of the Paladin Lockup program's escrow token account.
-/// Seeds: `"escrow_token_account" + mint_address`.
-pub const SEED_PREFIX_ESCROW_TOKEN_ACCOUNT: &[u8] = b"escrow_token_account";
 
 /// Derive the address of the escrow authority.
 pub fn get_escrow_authority_address(program_id: &Pubkey) -> Pubkey {
@@ -29,23 +25,6 @@ pub(crate) fn collect_escrow_authority_seeds<'a>() -> [&'a [u8]; 1] {
 
 pub(crate) fn collect_escrow_authority_signer_seeds(bump_seed: &[u8]) -> [&[u8]; 2] {
     [SEED_PREFIX_ESCROW_AUTHORITY, bump_seed]
-}
-
-/// Derive the address of the escrow token account.
-pub fn get_escrow_token_account_address(program_id: &Pubkey, mint: &Pubkey) -> Pubkey {
-    get_escrow_token_account_address_and_bump_seed(program_id, mint).0
-}
-
-/// Derive the address of the escrow token account, with bump seed.
-pub fn get_escrow_token_account_address_and_bump_seed(
-    program_id: &Pubkey,
-    mint: &Pubkey,
-) -> (Pubkey, u8) {
-    Pubkey::find_program_address(&collect_escrow_token_account_seeds(mint), program_id)
-}
-
-pub(crate) fn collect_escrow_token_account_seeds(mint: &Pubkey) -> [&[u8]; 2] {
-    [SEED_PREFIX_ESCROW_TOKEN_ACCOUNT, mint.as_ref()]
 }
 
 /// A lockup account.

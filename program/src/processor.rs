@@ -6,7 +6,7 @@ use {
         instruction::PaladinLockupInstruction,
         state::{
             collect_escrow_authority_signer_seeds, get_escrow_authority_address,
-            get_escrow_authority_address_and_bump_seed, get_escrow_token_account_address, Lockup,
+            get_escrow_authority_address_and_bump_seed, Lockup,
         },
     },
     solana_program::{
@@ -19,6 +19,7 @@ use {
         system_program,
         sysvar::Sysvar,
     },
+    spl_associated_token_account::get_associated_token_address_with_program_id,
     spl_discriminator::{ArrayDiscriminator, SplDiscriminate},
     spl_token_2022::{extension::StateWithExtensions, state::Mint},
 };
@@ -40,7 +41,7 @@ fn process_lockup(
     let escrow_authority_info = next_account_info(accounts_iter)?;
     let escrow_token_account_info = next_account_info(accounts_iter)?;
     let mint_info = next_account_info(accounts_iter)?;
-    let _token_program_info = next_account_info(accounts_iter)?;
+    let token_program_info = next_account_info(accounts_iter)?;
 
     // Note that Token-2022's `TransferChecked` processor will assert the
     // following:
@@ -75,7 +76,11 @@ fn process_lockup(
     // Ensure the provided escrow token account address is correct.
     if !escrow_token_account_info
         .key
-        .eq(&get_escrow_token_account_address(program_id, mint_info.key))
+        .eq(&get_associated_token_address_with_program_id(
+            escrow_authority_info.key,
+            mint_info.key,
+            token_program_info.key,
+        ))
     {
         return Err(PaladinLockupError::IncorrectEscrowTokenAccount.into());
     }
@@ -181,7 +186,7 @@ fn process_withdraw(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramRes
     let escrow_authority_info = next_account_info(accounts_iter)?;
     let escrow_token_account_info = next_account_info(accounts_iter)?;
     let mint_info = next_account_info(accounts_iter)?;
-    let _token_program_info = next_account_info(accounts_iter)?;
+    let token_program_info = next_account_info(accounts_iter)?;
 
     // Note that Token-2022's `TransferChecked` processor will assert the
     // provided token account is for the provided mint.
@@ -213,7 +218,11 @@ fn process_withdraw(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramRes
     // Ensure the provided escrow token account address is correct.
     if !escrow_token_account_info
         .key
-        .eq(&get_escrow_token_account_address(program_id, mint_info.key))
+        .eq(&get_associated_token_address_with_program_id(
+            escrow_authority_info.key,
+            mint_info.key,
+            token_program_info.key,
+        ))
     {
         return Err(PaladinLockupError::IncorrectEscrowTokenAccount.into());
     }

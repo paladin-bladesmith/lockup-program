@@ -1,12 +1,13 @@
 //! Program instruction types.
 
 use {
-    crate::state::{get_escrow_authority_address, get_escrow_token_account_address},
+    crate::state::get_escrow_authority_address,
     solana_program::{
         instruction::{AccountMeta, Instruction},
         program_error::ProgramError,
         pubkey::Pubkey,
     },
+    spl_associated_token_account::get_associated_token_address_with_program_id,
 };
 
 /// Instructions supported by the Paladin Lockup program.
@@ -98,9 +99,14 @@ pub fn lockup(
     mint_address: &Pubkey,
     amount: u64,
     period_seconds: u64,
+    token_program_id: &Pubkey,
 ) -> Instruction {
     let escrow_authority_address = get_escrow_authority_address(&crate::id());
-    let escrow_token_account_address = get_escrow_token_account_address(&crate::id(), mint_address);
+    let escrow_token_account_address = get_associated_token_address_with_program_id(
+        &escrow_authority_address,
+        mint_address,
+        token_program_id,
+    );
     let accounts = vec![
         AccountMeta::new_readonly(*authority_address, true),
         AccountMeta::new(*token_account_address, false),
@@ -108,7 +114,7 @@ pub fn lockup(
         AccountMeta::new_readonly(escrow_authority_address, false),
         AccountMeta::new(escrow_token_account_address, false),
         AccountMeta::new_readonly(*mint_address, false),
-        AccountMeta::new_readonly(spl_token_2022::id(), false),
+        AccountMeta::new_readonly(*token_program_id, false),
     ];
     let data = PaladinLockupInstruction::Lockup {
         amount,
@@ -138,9 +144,14 @@ pub fn withdraw(
     token_account_address: &Pubkey,
     lockup_address: &Pubkey,
     mint_address: &Pubkey,
+    token_program_id: &Pubkey,
 ) -> Instruction {
     let escrow_authority_address = get_escrow_authority_address(&crate::id());
-    let escrow_token_account_address = get_escrow_token_account_address(&crate::id(), mint_address);
+    let escrow_token_account_address = get_associated_token_address_with_program_id(
+        &escrow_authority_address,
+        mint_address,
+        token_program_id,
+    );
     let accounts = vec![
         AccountMeta::new_readonly(*authority_address, true),
         AccountMeta::new(*token_account_address, false),
@@ -148,7 +159,7 @@ pub fn withdraw(
         AccountMeta::new_readonly(escrow_authority_address, false),
         AccountMeta::new(escrow_token_account_address, false),
         AccountMeta::new_readonly(*mint_address, false),
-        AccountMeta::new_readonly(spl_token_2022::id(), false),
+        AccountMeta::new_readonly(*token_program_id, false),
     ];
     let data = PaladinLockupInstruction::Withdraw.pack();
     Instruction::new_with_bytes(crate::id(), &data, accounts)

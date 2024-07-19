@@ -7,7 +7,7 @@ mod setup;
 use {
     paladin_lockup_program::{
         error::PaladinLockupError,
-        state::{get_escrow_authority_address, get_escrow_token_account_address, Lockup},
+        state::{get_escrow_authority_address, Lockup},
     },
     setup::{setup, setup_mint, setup_token_account},
     solana_program_test::*,
@@ -112,8 +112,11 @@ async fn test_e2e() {
     let bob_token_account_starting_token_balance = 10_000;
 
     let escrow_authority = get_escrow_authority_address(&paladin_lockup_program::id());
-    let escrow_token_account =
-        get_escrow_token_account_address(&paladin_lockup_program::id(), &mint);
+    let escrow_token_account = get_associated_token_address_with_program_id(
+        &escrow_authority,
+        &mint,
+        &spl_token_2022::id(),
+    );
 
     let mut context = setup().start_with_context().await;
     let payer = context.payer.insecure_clone();
@@ -178,6 +181,7 @@ async fn test_e2e() {
                     &mint,
                     alice_lockup_amount,
                     alice_lockup_period_seconds,
+                    &spl_token_2022::id(),
                 ),
             ],
             &[&payer, &alice, &alice_lockup],
@@ -227,6 +231,7 @@ async fn test_e2e() {
                 &alice_token_account,
                 &alice_lockup.pubkey(),
                 &mint,
+                &spl_token_2022::id(),
             )],
             &[&payer, &alice],
             TransactionError::InstructionError(
@@ -255,6 +260,7 @@ async fn test_e2e() {
                 &alice_token_account,
                 &alice_lockup.pubkey(),
                 &mint,
+                &spl_token_2022::id(),
             )],
             &[&payer, &alice],
         )
@@ -307,6 +313,7 @@ async fn test_e2e() {
                     &mint,
                     bob_lockup_amount,
                     bob_lockup_period_seconds,
+                    &spl_token_2022::id(),
                 ),
             ],
             &[&payer, &bob, &bob_lockup],
@@ -356,6 +363,7 @@ async fn test_e2e() {
                 &bob_token_account,
                 &bob_lockup.pubkey(),
                 &mint,
+                &spl_token_2022::id(),
             )],
             &[&payer, &bob],
             TransactionError::InstructionError(
@@ -411,6 +419,7 @@ async fn test_e2e() {
                 &bob_token_account,
                 &bob_lockup.pubkey(),
                 &mint,
+                &spl_token_2022::id(),
             )],
             &[&payer, &bob],
         )
