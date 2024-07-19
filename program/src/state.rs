@@ -4,31 +4,31 @@ use {
     spl_discriminator::SplDiscriminate,
 };
 
-/// The seed prefix (`"escrow"`) in bytes used to derive the address of the
-/// Paladin Lockup program's escrow account.
-/// Seeds: `"escrow"`.
-pub const SEED_PREFIX_ESCROW: &[u8] = b"escrow";
+/// The seed prefix (`"escrow_authority"`) in bytes used to derive the address
+/// of the Paladin Lockup program's escrow authority.
+/// Seeds: `"escrow_authority"`.
+pub const SEED_PREFIX_ESCROW_AUTHORITY: &[u8] = b"escrow_authority";
 /// The seed prefix (`"escrow_token_account"`) in bytes used to derive the
 /// address of the Paladin Lockup program's escrow token account.
 /// Seeds: `"escrow_token_account" + mint_address`.
 pub const SEED_PREFIX_ESCROW_TOKEN_ACCOUNT: &[u8] = b"escrow_token_account";
 
-/// Derive the address of the escrow account.
-pub fn get_escrow_address(program_id: &Pubkey) -> Pubkey {
-    get_escrow_address_and_bump_seed(program_id).0
+/// Derive the address of the escrow authority.
+pub fn get_escrow_authority_address(program_id: &Pubkey) -> Pubkey {
+    get_escrow_authority_address_and_bump_seed(program_id).0
 }
 
-/// Derive the address of the escrow account, with bump seed.
-pub fn get_escrow_address_and_bump_seed(program_id: &Pubkey) -> (Pubkey, u8) {
-    Pubkey::find_program_address(&collect_escrow_seeds(), program_id)
+/// Derive the address of the escrow authority, with bump seed.
+pub fn get_escrow_authority_address_and_bump_seed(program_id: &Pubkey) -> (Pubkey, u8) {
+    Pubkey::find_program_address(&collect_escrow_authority_seeds(), program_id)
 }
 
-pub(crate) fn collect_escrow_seeds<'a>() -> [&'a [u8]; 1] {
-    [SEED_PREFIX_ESCROW]
+pub(crate) fn collect_escrow_authority_seeds<'a>() -> [&'a [u8]; 1] {
+    [SEED_PREFIX_ESCROW_AUTHORITY]
 }
 
-pub(crate) fn collect_escrow_signer_seeds(bump_seed: &[u8]) -> [&[u8]; 2] {
-    [SEED_PREFIX_ESCROW, bump_seed]
+pub(crate) fn collect_escrow_authority_signer_seeds(bump_seed: &[u8]) -> [&[u8]; 2] {
+    [SEED_PREFIX_ESCROW_AUTHORITY, bump_seed]
 }
 
 /// Derive the address of the escrow token account.

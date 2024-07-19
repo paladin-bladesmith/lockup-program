@@ -8,9 +8,9 @@ pub enum PaladinLockupError {
     /// Incorrect token account.
     #[error("Incorrect token account.")]
     IncorrectTokenAccount,
-    /// Incorrect escrow address.
-    #[error("Incorrect escrow address.")]
-    IncorrectEscrowAddress,
+    /// Incorrect escrow authority address.
+    #[error("Incorrect escrow authority address.")]
+    IncorrectEscrowAuthorityAddress,
     /// Incorrect escrow token account.
     #[error("Incorrect escrow token account.")]
     IncorrectEscrowTokenAccount,
