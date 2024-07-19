@@ -28,6 +28,11 @@ pub enum PaladinLockupInstruction {
     /// 5. `[ ]` Token mint.
     /// 6. `[ ]` Token program.
     Lockup { amount: u64, period_seconds: u64 },
+    // Jon: I'm not sure I understand the point of this instruction, it seems like
+    // it makes the lockup time completely useless. It might be clearer to either remove
+    // this instruction, or remove period_seconds during creation. I think Uri mentioned
+    // wanting to allow users to unlock whenever, so probably we can remove the lockup
+    // time and keep this.
     /// Unlock a token lockup, enabling the tokens for withdrawal.
     ///
     /// Accounts expected by this instruction:
@@ -36,7 +41,13 @@ pub enum PaladinLockupInstruction {
     /// 1. `[ ]` Depositor token account.
     /// 2. `[w]` Lockup account.
     Unlock,
+    // Jon: this instruction is a bit confusing because it's permissionless. That might
+    // be bad for people that want to keep tokens locked up.
+    // Maybe we should store an authority on the lockup, which can be configured when the
+    // Lockup is created, and require a signature from that authority to withdraw tokens
     /// Withdraw tokens from a lockup account.
+    // Jon: just a nit, but can you document that the rent exempt lamports from the
+    // lockup account go to the destination token account?
     ///
     /// Accounts expected by this instruction:
     ///

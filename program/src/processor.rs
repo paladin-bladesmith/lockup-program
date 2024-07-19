@@ -58,6 +58,8 @@ fn process_lockup(
         let token_account_data = token_account_info.try_borrow_data()?;
         let token_account = StateWithExtensions::<Account>::unpack(&token_account_data)?;
 
+        // Jon: this check will wrongly fail with account delegates, so it should be
+        // removed
         // Ensure the provided token account is owned by the owner.
         if &token_account.base.owner != owner_info.key {
             return Err(ProgramError::IncorrectAuthority);
@@ -79,6 +81,8 @@ fn process_lockup(
         return Err(ProgramError::InvalidAccountData);
     }
 
+    // Jon: this is ok because there's only one account type, but to be safe, this
+    // should check that it's all zeroes to make sure it's uninitialized instead.
     // Ensure the lockup account is not initialized.
     if &lockup_info.try_borrow_data()?[0..8] == Lockup::SPL_DISCRIMINATOR_SLICE {
         return Err(ProgramError::AccountAlreadyInitialized);
@@ -123,6 +127,8 @@ fn process_lockup(
             mint.base.decimals
         };
 
+        // Jon: this won't work with transfer hooks, so it should use the onchain helpers
+        // to do the transfer
         invoke(
             &spl_token_2022::instruction::transfer_checked(
                 &spl_token_2022::id(),
@@ -289,6 +295,7 @@ fn process_withdraw(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramRes
             mint.base.decimals
         };
 
+        // Jon: Same here, this needs to use the transfer hook helpers
         invoke_signed(
             &spl_token_2022::instruction::transfer_checked(
                 &spl_token_2022::id(),
@@ -365,6 +372,11 @@ fn process_initialize_escrow(program_id: &Pubkey, accounts: &[AccountInfo]) -> P
         return Err(PaladinLockupError::IncorrectEscrowTokenAccount.into());
     }
 
+    // Jon: this won't work for mint with extensions, since we'll need to allocate more
+    // space. If we want to keep it simple, we could by convention require the ATA for
+    // the escrow authority at that mint, that way we know the account isn't tampered
+    // with, and we can remove this instruction. Or we can copy the logic in the ATA
+    // program. I lean towards the first.
     // Allocate & assign the escrow token account.
     invoke_signed(
         &system_instruction::allocate(&escrow_token_account_address, Account::LEN as u64),

@@ -13,6 +13,8 @@ pub const SEED_PREFIX_ESCROW: &[u8] = b"escrow";
 /// Seeds: `"escrow_token_account" + mint_address`.
 pub const SEED_PREFIX_ESCROW_TOKEN_ACCOUNT: &[u8] = b"escrow_token_account";
 
+// Jon: I got a bit confused with this, can we call it `escrow_authority` since it's
+// the owner of the token accounts?
 /// Derive the address of the escrow account.
 pub fn get_escrow_address(program_id: &Pubkey) -> Pubkey {
     get_escrow_address_and_bump_seed(program_id).0
@@ -61,6 +63,10 @@ pub(crate) fn collect_escrow_token_account_signer_seeds<'a>(
 #[repr(C)]
 pub struct Lockup {
     discriminator: [u8; 8],
+    // Jon: this needs to store the mint address too and it needs to be checked,
+    // otherwise it's possible for someone to create an escrow token account for a
+    // *different* mint, lockup tokens, then withdraw from *another* mint, effectively
+    // stealing tokens from the lockup
     /// Amount of tokens locked up in the escrow.
     pub amount: u64,
     /// The depositor who created the lockup.
