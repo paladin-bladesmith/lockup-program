@@ -143,13 +143,3 @@ pub async fn setup_lockup(
         }),
     );
 }
-
-pub async fn setup_escrow_authority(context: &mut ProgramTestContext, address: &Pubkey) {
-    let rent = context.banks_client.get_rent().await.unwrap();
-    let lamports = rent.minimum_balance(0);
-
-    context.set_account(
-        address,
-        &AccountSharedData::new(lamports, 0, &paladin_lockup_program::id()),
-    );
-}

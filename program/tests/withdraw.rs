@@ -7,7 +7,7 @@ use {
         error::PaladinLockupError,
         state::{get_escrow_authority_address, get_escrow_token_account_address, Lockup},
     },
-    setup::{setup, setup_escrow_authority, setup_lockup, setup_mint, setup_token_account},
+    setup::{setup, setup_lockup, setup_mint, setup_token_account},
     solana_program_test::*,
     solana_sdk::{
         account::{Account, AccountSharedData},
@@ -607,7 +607,6 @@ async fn success() {
 
     let clock = context.banks_client.get_sysvar::<Clock>().await.unwrap();
 
-    setup_escrow_authority(&mut context, &escrow_authority).await;
     setup_lockup(
         &mut context,
         &lockup,

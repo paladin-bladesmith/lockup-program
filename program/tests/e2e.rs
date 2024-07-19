@@ -14,7 +14,6 @@ use {
     solana_sdk::{
         clock::Clock,
         instruction::{Instruction, InstructionError},
-        program_pack::Pack,
         pubkey::Pubkey,
         signature::Keypair,
         signer::Signer,
@@ -137,31 +136,15 @@ async fn test_e2e() {
             bob_token_account_starting_token_balance,
         )
         .await;
-        setup_mint(&mut context, &mint, &Pubkey::new_unique(), 1_000_000).await;
-    }
-
-    // Initialize the escrow.
-    {
-        // Fund/allocate the escrow authority account, then invoke the lockup program.
-        let rent = context.banks_client.get_rent().await.expect("get_rent");
-        send_transaction(
+        setup_token_account(
             &mut context,
-            &[
-                system_instruction::transfer(
-                    &payer.pubkey(),
-                    &escrow_authority,
-                    rent.minimum_balance(0),
-                ),
-                system_instruction::transfer(
-                    &payer.pubkey(),
-                    &escrow_token_account,
-                    rent.minimum_balance(TokenAccount::LEN),
-                ),
-                paladin_lockup_program::instruction::initialize_escrow(&mint),
-            ],
-            &[&payer],
+            &escrow_token_account,
+            &escrow_authority,
+            &mint,
+            0,
         )
         .await;
+        setup_mint(&mut context, &mint, &Pubkey::new_unique(), 1_000_000).await;
     }
 
     // Create a lockup for Alice.

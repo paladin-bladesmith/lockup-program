@@ -7,7 +7,7 @@ use {
         error::PaladinLockupError,
         state::{get_escrow_authority_address, get_escrow_token_account_address, Lockup},
     },
-    setup::{setup, setup_escrow_authority, setup_mint, setup_token_account},
+    setup::{setup, setup_mint, setup_token_account},
     solana_program_test::*,
     solana_sdk::{
         account::{Account, AccountSharedData},
@@ -398,7 +398,6 @@ async fn success(amount: u64, period_seconds: u64) {
     let lockup = Pubkey::new_unique();
 
     let mut context = setup().start_with_context().await;
-    setup_escrow_authority(&mut context, &escrow_authority).await;
     setup_token_account(
         &mut context,
         &token_account,

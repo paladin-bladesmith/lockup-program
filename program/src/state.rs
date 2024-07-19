@@ -48,13 +48,6 @@ pub(crate) fn collect_escrow_token_account_seeds(mint: &Pubkey) -> [&[u8]; 2] {
     [SEED_PREFIX_ESCROW_TOKEN_ACCOUNT, mint.as_ref()]
 }
 
-pub(crate) fn collect_escrow_token_account_signer_seeds<'a>(
-    mint: &'a Pubkey,
-    bump_seed: &'a [u8],
-) -> [&'a [u8]; 3] {
-    [SEED_PREFIX_ESCROW_TOKEN_ACCOUNT, mint.as_ref(), bump_seed]
-}
-
 /// A lockup account.
 #[derive(Clone, Copy, Debug, PartialEq, Pod, SplDiscriminate, Zeroable)]
 #[discriminator_hash_input("lockup::state::lockup")]

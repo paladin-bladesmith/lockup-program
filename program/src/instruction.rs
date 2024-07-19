@@ -6,7 +6,6 @@ use {
         instruction::{AccountMeta, Instruction},
         program_error::ProgramError,
         pubkey::Pubkey,
-        system_program,
     },
 };
 
@@ -47,20 +46,6 @@ pub enum PaladinLockupInstruction {
     /// 5. `[ ]` Token mint.
     /// 6. `[ ]` Token program.
     Withdraw,
-    /// Initialize the escrow account.
-    ///
-    /// Expects an uninitialized escrow account with enough rent-exempt
-    /// lamports to store escrow state, owned by the System program.
-    ///
-    /// This instruction is permissionless, but can only be invoked once.
-    ///
-    /// Accounts expected by this instruction:
-    ///
-    /// 0. `[w]` Escrow authority.
-    /// 1. `[w]` Escrow token account.
-    /// 2. `[ ]` Token mint.
-    /// 3. `[ ]` Token program.
-    InitializeEscrow,
 }
 
 impl PaladinLockupInstruction {
@@ -81,7 +66,6 @@ impl PaladinLockupInstruction {
             }
             Self::Unlock => vec![1],
             Self::Withdraw => vec![2],
-            Self::InitializeEscrow => vec![3],
         }
     }
 
@@ -99,7 +83,6 @@ impl PaladinLockupInstruction {
             }
             Some((&1, _)) => Ok(Self::Unlock),
             Some((&2, _)) => Ok(Self::Withdraw),
-            Some((&3, _)) => Ok(Self::InitializeEscrow),
             _ => Err(ProgramError::InvalidInstructionData),
         }
     }
@@ -171,23 +154,6 @@ pub fn withdraw(
     Instruction::new_with_bytes(crate::id(), &data, accounts)
 }
 
-/// Creates an
-/// [InitializeEscrow](enum.PaladinLockupInstruction.html)
-/// instruction.
-pub fn initialize_escrow(mint_address: &Pubkey) -> Instruction {
-    let escrow_authority_address = get_escrow_authority_address(&crate::id());
-    let escrow_token_account_address = get_escrow_token_account_address(&crate::id(), mint_address);
-    let accounts = vec![
-        AccountMeta::new(escrow_authority_address, false),
-        AccountMeta::new(escrow_token_account_address, false),
-        AccountMeta::new_readonly(*mint_address, false),
-        AccountMeta::new_readonly(spl_token_2022::id(), false),
-        AccountMeta::new_readonly(system_program::id(), false),
-    ];
-    let data = PaladinLockupInstruction::InitializeEscrow.pack();
-    Instruction::new_with_bytes(crate::id(), &data, accounts)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -214,10 +180,5 @@ mod tests {
     #[test]
     fn test_pack_unpack_withdraw() {
         test_pack_unpack(PaladinLockupInstruction::Withdraw);
-    }
-
-    #[test]
-    fn test_pack_unpack_initialize_escrow() {
-        test_pack_unpack(PaladinLockupInstruction::InitializeEscrow);
     }
 }
