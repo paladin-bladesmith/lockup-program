@@ -5,9 +5,10 @@ use {
         error::PaladinLockupError,
         instruction::PaladinLockupInstruction,
         state::{
-            collect_escrow_signer_seeds, collect_escrow_token_account_signer_seeds,
-            get_escrow_address, get_escrow_address_and_bump_seed, get_escrow_token_account_address,
-            get_escrow_token_account_address_and_bump_seed, Lockup,
+            collect_escrow_authority_signer_seeds, collect_escrow_token_account_signer_seeds,
+            get_escrow_authority_address, get_escrow_authority_address_and_bump_seed,
+            get_escrow_token_account_address, get_escrow_token_account_address_and_bump_seed,
+            Lockup,
         },
     },
     solana_program::{
@@ -43,31 +44,17 @@ fn process_lockup(
     let owner_info = next_account_info(accounts_iter)?;
     let token_account_info = next_account_info(accounts_iter)?;
     let lockup_info = next_account_info(accounts_iter)?;
-    let escrow_info = next_account_info(accounts_iter)?;
+    let escrow_authority_info = next_account_info(accounts_iter)?;
     let escrow_token_account_info = next_account_info(accounts_iter)?;
     let mint_info = next_account_info(accounts_iter)?;
     let _token_program_info = next_account_info(accounts_iter)?;
 
-    // Ensure the owner account is a signer.
-    if !owner_info.is_signer {
-        return Err(ProgramError::MissingRequiredSignature);
-    }
-
-    // Check the token account.
-    {
-        let token_account_data = token_account_info.try_borrow_data()?;
-        let token_account = StateWithExtensions::<Account>::unpack(&token_account_data)?;
-
-        // Ensure the provided token account is owned by the owner.
-        if &token_account.base.owner != owner_info.key {
-            return Err(ProgramError::IncorrectAuthority);
-        }
-
-        // Ensure the provided token account is for the mint.
-        if &token_account.base.mint != mint_info.key {
-            return Err(PaladinLockupError::TokenAccountMintMismatch.into());
-        }
-    }
+    // Note that Token-2022's `TransferChecked` processor will assert the
+    // following:
+    //
+    // * The provided owner account is a signer.
+    // * The provided owner is authorized to transfer the tokens.
+    // * The provided token account is for the provided mint.
 
     // Ensure the lockup account is owned by the Paladin Lockup program.
     if lockup_info.owner != program_id {
@@ -84,9 +71,12 @@ fn process_lockup(
         return Err(ProgramError::AccountAlreadyInitialized);
     }
 
-    // Ensure the provided escrow address is correct.
-    if !escrow_info.key.eq(&get_escrow_address(program_id)) {
-        return Err(PaladinLockupError::IncorrectEscrowAddress.into());
+    // Ensure the provided escrow authority address is correct.
+    if !escrow_authority_info
+        .key
+        .eq(&get_escrow_authority_address(program_id))
+    {
+        return Err(PaladinLockupError::IncorrectEscrowAuthorityAddress.into());
     }
 
     // Ensure the provided escrow token account address is correct.
@@ -113,6 +103,7 @@ fn process_lockup(
             token_account_info.key,
             lockup_start_timestamp,
             lockup_end_timestamp,
+            mint_info.key,
         );
 
     // Transfer the tokens to the escrow token account.
@@ -123,23 +114,16 @@ fn process_lockup(
             mint.base.decimals
         };
 
-        invoke(
-            &spl_token_2022::instruction::transfer_checked(
-                &spl_token_2022::id(),
-                token_account_info.key,
-                mint_info.key,
-                escrow_token_account_info.key,
-                owner_info.key,
-                &[],
-                amount,
-                decimals,
-            )?,
-            &[
-                token_account_info.clone(),
-                mint_info.clone(),
-                escrow_token_account_info.clone(),
-                owner_info.clone(),
-            ],
+        spl_token_2022::onchain::invoke_transfer_checked(
+            &spl_token_2022::id(),
+            token_account_info.clone(),
+            mint_info.clone(),
+            escrow_token_account_info.clone(),
+            owner_info.clone(),
+            accounts_iter.as_slice(),
+            amount,
+            decimals,
+            &[],
         )?;
     }
 
@@ -211,21 +195,13 @@ fn process_withdraw(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramRes
 
     let token_account_info = next_account_info(accounts_iter)?;
     let lockup_info = next_account_info(accounts_iter)?;
-    let escrow_info = next_account_info(accounts_iter)?;
+    let escrow_authority_info = next_account_info(accounts_iter)?;
     let escrow_token_account_info = next_account_info(accounts_iter)?;
     let mint_info = next_account_info(accounts_iter)?;
     let _token_program_info = next_account_info(accounts_iter)?;
 
-    // Ensure the provided token account is correct for the mint.
-    {
-        let token_account_data = token_account_info.try_borrow_data()?;
-        let token_account = StateWithExtensions::<Account>::unpack(&token_account_data)?;
-
-        // Ensure the provided token account is for the mint.
-        if &token_account.base.mint != mint_info.key {
-            return Err(PaladinLockupError::TokenAccountMintMismatch.into());
-        }
-    }
+    // Note that Token-2022's `TransferChecked` processor will assert the
+    // provided token account is for the provided mint.
 
     // Ensure the lockup account is owned by the Paladin Lockup program.
     if lockup_info.owner != program_id {
@@ -239,10 +215,11 @@ fn process_withdraw(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramRes
         return Err(ProgramError::UninitializedAccount);
     }
 
-    // Ensure the provided escrow address is correct.
-    let (escrow_address, bump_seed) = get_escrow_address_and_bump_seed(program_id);
-    if !escrow_info.key.eq(&escrow_address) {
-        return Err(PaladinLockupError::IncorrectEscrowAddress.into());
+    // Ensure the provided escrow authority address is correct.
+    let (escrow_authority_address, bump_seed) =
+        get_escrow_authority_address_and_bump_seed(program_id);
+    if !escrow_authority_info.key.eq(&escrow_authority_address) {
+        return Err(PaladinLockupError::IncorrectEscrowAuthorityAddress.into());
     }
 
     // Ensure the provided escrow token account address is correct.
@@ -264,6 +241,11 @@ fn process_withdraw(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramRes
             return Err(ProgramError::IncorrectAuthority);
         }
 
+        // Ensure the provided mint is the same as the lockup's mint.
+        if state.mint != *mint_info.key {
+            return Err(PaladinLockupError::IncorrectMint.into());
+        }
+
         // Ensure the lockup has ended.
         let clock = <Clock as Sysvar>::get()?;
         let timestamp = clock.unix_timestamp as u64;
@@ -281,7 +263,7 @@ fn process_withdraw(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramRes
     // Transfer the tokens to the depositor.
     {
         let bump_seed = [bump_seed];
-        let escrow_signer_seeds = collect_escrow_signer_seeds(&bump_seed);
+        let escrow_authority_signer_seeds = collect_escrow_authority_signer_seeds(&bump_seed);
 
         let decimals = {
             let mint_data = mint_info.try_borrow_data()?;
@@ -289,24 +271,16 @@ fn process_withdraw(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramRes
             mint.base.decimals
         };
 
-        invoke_signed(
-            &spl_token_2022::instruction::transfer_checked(
-                &spl_token_2022::id(),
-                escrow_token_account_info.key,
-                mint_info.key,
-                token_account_info.key,
-                escrow_info.key,
-                &[],
-                withdraw_amount,
-                decimals,
-            )?,
-            &[
-                escrow_token_account_info.clone(),
-                mint_info.clone(),
-                token_account_info.clone(),
-                escrow_info.clone(),
-            ],
-            &[&escrow_signer_seeds],
+        spl_token_2022::onchain::invoke_transfer_checked(
+            &spl_token_2022::id(),
+            escrow_token_account_info.clone(),
+            mint_info.clone(),
+            token_account_info.clone(),
+            escrow_authority_info.clone(),
+            accounts_iter.as_slice(),
+            withdraw_amount,
+            decimals,
+            &[&escrow_authority_signer_seeds],
         )?;
     }
 
@@ -330,25 +304,26 @@ fn process_withdraw(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramRes
 fn process_initialize_escrow(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
     let accounts_iter = &mut accounts.iter();
 
-    let escrow_info = next_account_info(accounts_iter)?;
+    let escrow_authority_info = next_account_info(accounts_iter)?;
     let escrow_token_account_info = next_account_info(accounts_iter)?;
     let mint_info = next_account_info(accounts_iter)?;
     let _token_program_info = next_account_info(accounts_iter)?;
 
-    let (escrow_address, bump_seed) = get_escrow_address_and_bump_seed(program_id);
+    let (escrow_authority_address, bump_seed) =
+        get_escrow_authority_address_and_bump_seed(program_id);
     let bump_seed = [bump_seed];
-    let escrow_signer_seeds = collect_escrow_signer_seeds(&bump_seed);
+    let escrow_authority_signer_seeds = collect_escrow_authority_signer_seeds(&bump_seed);
 
-    // Ensure the provided escrow address is correct.
-    if !escrow_info.key.eq(&escrow_address) {
-        return Err(PaladinLockupError::IncorrectEscrowAddress.into());
+    // Ensure the provided escrow authority address is correct.
+    if !escrow_authority_info.key.eq(&escrow_authority_address) {
+        return Err(PaladinLockupError::IncorrectEscrowAuthorityAddress.into());
     }
 
-    // Assign the escrow account (no state to allocate).
+    // Assign the escrow authority (no state to allocate).
     invoke_signed(
-        &system_instruction::assign(escrow_info.key, program_id),
-        &[escrow_info.clone()],
-        &[&escrow_signer_seeds],
+        &system_instruction::assign(escrow_authority_info.key, program_id),
+        &[escrow_authority_info.clone()],
+        &[&escrow_authority_signer_seeds],
     )?;
 
     let (escrow_token_account_address, bump_seed) =
@@ -383,7 +358,7 @@ fn process_initialize_escrow(program_id: &Pubkey, accounts: &[AccountInfo]) -> P
             &spl_token_2022::id(),
             escrow_token_account_info.key,
             mint_info.key,
-            escrow_info.key,
+            escrow_authority_info.key,
         )?,
         &[escrow_token_account_info.clone(), mint_info.clone()],
     )?;

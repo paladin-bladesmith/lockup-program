@@ -1,7 +1,7 @@
 //! Program instruction types.
 
 use {
-    crate::state::{get_escrow_address, get_escrow_token_account_address},
+    crate::state::{get_escrow_authority_address, get_escrow_token_account_address},
     solana_program::{
         instruction::{AccountMeta, Instruction},
         program_error::ProgramError,
@@ -23,7 +23,7 @@ pub enum PaladinLockupInstruction {
     /// 0. `[s]` Depositor owner.
     /// 1. `[w]` Depositor token account.
     /// 2. `[w]` Lockup account.
-    /// 3. `[ ]` Escrow account.
+    /// 3. `[ ]` Escrow authority.
     /// 4. `[w]` Escrow token account.
     /// 5. `[ ]` Token mint.
     /// 6. `[ ]` Token program.
@@ -42,7 +42,7 @@ pub enum PaladinLockupInstruction {
     ///
     /// 0. `[w]` Depositor token account.
     /// 1. `[w]` Lockup account.
-    /// 2. `[ ]` Escrow account.
+    /// 2. `[ ]` Escrow authority.
     /// 3. `[w]` Escrow token account.
     /// 4. `[ ]` Token mint.
     /// 5. `[ ]` Token program.
@@ -56,7 +56,7 @@ pub enum PaladinLockupInstruction {
     ///
     /// Accounts expected by this instruction:
     ///
-    /// 0. `[w]` Escrow account.
+    /// 0. `[w]` Escrow authority.
     /// 1. `[w]` Escrow token account.
     /// 2. `[ ]` Token mint.
     /// 3. `[ ]` Token program.
@@ -116,13 +116,13 @@ pub fn lockup(
     amount: u64,
     period_seconds: u64,
 ) -> Instruction {
-    let escrow_address = get_escrow_address(&crate::id());
+    let escrow_authority_address = get_escrow_authority_address(&crate::id());
     let escrow_token_account_address = get_escrow_token_account_address(&crate::id(), mint_address);
     let accounts = vec![
         AccountMeta::new_readonly(*owner_address, true),
         AccountMeta::new(*token_account_address, false),
         AccountMeta::new(*lockup_address, false),
-        AccountMeta::new_readonly(escrow_address, false),
+        AccountMeta::new_readonly(escrow_authority_address, false),
         AccountMeta::new(escrow_token_account_address, false),
         AccountMeta::new_readonly(*mint_address, false),
         AccountMeta::new_readonly(spl_token_2022::id(), false),
@@ -160,12 +160,12 @@ pub fn withdraw(
     lockup_address: &Pubkey,
     mint_address: &Pubkey,
 ) -> Instruction {
-    let escrow_address = get_escrow_address(&crate::id());
+    let escrow_authority_address = get_escrow_authority_address(&crate::id());
     let escrow_token_account_address = get_escrow_token_account_address(&crate::id(), mint_address);
     let accounts = vec![
         AccountMeta::new(*token_account_address, false),
         AccountMeta::new(*lockup_address, false),
-        AccountMeta::new_readonly(escrow_address, false),
+        AccountMeta::new_readonly(escrow_authority_address, false),
         AccountMeta::new(escrow_token_account_address, false),
         AccountMeta::new_readonly(*mint_address, false),
         AccountMeta::new_readonly(spl_token_2022::id(), false),
@@ -178,10 +178,10 @@ pub fn withdraw(
 /// [InitializeEscrow](enum.PaladinLockupInstruction.html)
 /// instruction.
 pub fn initialize_escrow(mint_address: &Pubkey) -> Instruction {
-    let escrow_address = get_escrow_address(&crate::id());
+    let escrow_authority_address = get_escrow_authority_address(&crate::id());
     let escrow_token_account_address = get_escrow_token_account_address(&crate::id(), mint_address);
     let accounts = vec![
-        AccountMeta::new(escrow_address, false),
+        AccountMeta::new(escrow_authority_address, false),
         AccountMeta::new(escrow_token_account_address, false),
         AccountMeta::new_readonly(*mint_address, false),
         AccountMeta::new_readonly(spl_token_2022::id(), false),

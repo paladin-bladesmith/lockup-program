@@ -119,12 +119,14 @@ pub async fn setup_lockup(
     amount: u64,
     lockup_start_timestamp: u64,
     lockup_end_timestamp: u64,
+    mint_address: &Pubkey,
 ) {
     let state = Lockup::new(
         amount,
         depository,
         lockup_start_timestamp,
         lockup_end_timestamp,
+        mint_address,
     );
     let data = bytemuck::bytes_of(&state).to_vec();
 
@@ -142,7 +144,7 @@ pub async fn setup_lockup(
     );
 }
 
-pub async fn setup_escrow(context: &mut ProgramTestContext, address: &Pubkey) {
+pub async fn setup_escrow_authority(context: &mut ProgramTestContext, address: &Pubkey) {
     let rent = context.banks_client.get_rent().await.unwrap();
     let lamports = rent.minimum_balance(0);
 

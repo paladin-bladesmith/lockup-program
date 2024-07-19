@@ -1,13 +1,13 @@
 //! End-to-end test.
 
-// #![cfg(feature = "test-sbf")]
+#![cfg(feature = "test-sbf")]
 
 mod setup;
 
 use {
     paladin_lockup_program::{
         error::PaladinLockupError,
-        state::{get_escrow_address, get_escrow_token_account_address, Lockup},
+        state::{get_escrow_authority_address, get_escrow_token_account_address, Lockup},
     },
     setup::{setup, setup_mint, setup_token_account},
     solana_program_test::*,
@@ -112,7 +112,7 @@ async fn test_e2e() {
         get_associated_token_address_with_program_id(&bob.pubkey(), &mint, &spl_token_2022::id());
     let bob_token_account_starting_token_balance = 10_000;
 
-    let escrow = get_escrow_address(&paladin_lockup_program::id());
+    let escrow_authority = get_escrow_authority_address(&paladin_lockup_program::id());
     let escrow_token_account =
         get_escrow_token_account_address(&paladin_lockup_program::id(), &mint);
 
@@ -142,12 +142,16 @@ async fn test_e2e() {
 
     // Initialize the escrow.
     {
-        // Fund/allocate the escrow account, then invoke the lockup program.
+        // Fund/allocate the escrow authority account, then invoke the lockup program.
         let rent = context.banks_client.get_rent().await.expect("get_rent");
         send_transaction(
             &mut context,
             &[
-                system_instruction::transfer(&payer.pubkey(), &escrow, rent.minimum_balance(0)),
+                system_instruction::transfer(
+                    &payer.pubkey(),
+                    &escrow_authority,
+                    rent.minimum_balance(0),
+                ),
                 system_instruction::transfer(
                     &payer.pubkey(),
                     &escrow_token_account,
@@ -209,6 +213,7 @@ async fn test_e2e() {
                 &alice_token_account,
                 expected_lockup_start,
                 expected_lockup_end,
+                &mint,
             ),
         )
         .await;
@@ -335,6 +340,7 @@ async fn test_e2e() {
                 &bob_token_account,
                 expected_lockup_start,
                 expected_lockup_end,
+                &mint,
             ),
         )
         .await;
@@ -405,6 +411,7 @@ async fn test_e2e() {
                 &bob_token_account,
                 expected_lockup_start,
                 expected_lockup_end,
+                &mint,
             ),
         )
         .await;
