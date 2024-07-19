@@ -5,6 +5,9 @@ use spl_program_error::*;
 /// Errors that can be returned by the Paladin Lockup program.
 #[spl_program_error]
 pub enum PaladinLockupError {
+    /// Incorrect mint.
+    #[error("Incorrect mint.")]
+    IncorrectMint,
     /// Incorrect token account.
     #[error("Incorrect token account.")]
     IncorrectTokenAccount,

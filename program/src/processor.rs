@@ -270,6 +270,11 @@ fn process_withdraw(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramRes
             return Err(ProgramError::IncorrectAuthority);
         }
 
+        // Ensure the provided mint is the same as the lockup's mint.
+        if state.mint != *mint_info.key {
+            return Err(PaladinLockupError::IncorrectMint.into());
+        }
+
         // Ensure the lockup has ended.
         let clock = <Clock as Sysvar>::get()?;
         let timestamp = clock.unix_timestamp as u64;

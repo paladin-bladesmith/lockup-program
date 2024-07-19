@@ -410,6 +410,57 @@ async fn fail_incorrect_depositor() {
     );
 }
 
+#[tokio::test]
+async fn fail_incorrect_mint() {
+    let mint = Pubkey::new_unique();
+
+    let owner = Keypair::new();
+    let token_account =
+        get_associated_token_address_with_program_id(&owner.pubkey(), &mint, &spl_token_2022::id());
+
+    let lockup = Pubkey::new_unique();
+
+    let mut context = setup().start_with_context().await;
+
+    let clock = context.banks_client.get_sysvar::<Clock>().await.unwrap();
+
+    setup_token_account(&mut context, &token_account, &owner.pubkey(), &mint, 10_000).await;
+    setup_lockup(
+        &mut context,
+        &lockup,
+        &token_account,
+        10_000,
+        clock.unix_timestamp as u64,
+        clock.unix_timestamp as u64, // Now (unlocked).
+        &Pubkey::new_unique(),       // Incorrect mint.
+    )
+    .await;
+
+    let instruction = paladin_lockup_program::instruction::withdraw(&token_account, &lockup, &mint);
+
+    let transaction = Transaction::new_signed_with_payer(
+        &[instruction],
+        Some(&context.payer.pubkey()),
+        &[&context.payer],
+        context.last_blockhash,
+    );
+
+    let err = context
+        .banks_client
+        .process_transaction(transaction)
+        .await
+        .unwrap_err()
+        .unwrap();
+
+    assert_eq!(
+        err,
+        TransactionError::InstructionError(
+            0,
+            InstructionError::Custom(PaladinLockupError::IncorrectMint as u32)
+        )
+    );
+}
+
 fn get_token_account_balance(token_account: &Account) -> u64 {
     StateWithExtensions::<TokenAccount>::unpack(&token_account.data)
         .unwrap()
