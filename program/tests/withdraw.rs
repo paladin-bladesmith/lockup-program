@@ -23,51 +23,6 @@ use {
 };
 
 #[tokio::test]
-async fn fail_incorrect_token_account_address() {
-    let mint = Pubkey::new_unique();
-
-    let owner = Keypair::new();
-    let token_account =
-        get_associated_token_address_with_program_id(&owner.pubkey(), &mint, &spl_token_2022::id());
-
-    let lockup = Pubkey::new_unique();
-
-    let mut context = setup().start_with_context().await;
-    setup_token_account(
-        &mut context,
-        &token_account,
-        &owner.pubkey(),
-        &Pubkey::new_unique(), // Incorrect mint.
-        10_000,
-    )
-    .await;
-
-    let instruction = paladin_lockup_program::instruction::withdraw(&token_account, &lockup, &mint);
-
-    let transaction = Transaction::new_signed_with_payer(
-        &[instruction],
-        Some(&context.payer.pubkey()),
-        &[&context.payer],
-        context.last_blockhash,
-    );
-
-    let err = context
-        .banks_client
-        .process_transaction(transaction)
-        .await
-        .unwrap_err()
-        .unwrap();
-
-    assert_eq!(
-        err,
-        TransactionError::InstructionError(
-            0,
-            InstructionError::Custom(PaladinLockupError::TokenAccountMintMismatch as u32)
-        )
-    );
-}
-
-#[tokio::test]
 async fn fail_incorrect_lockup_owner() {
     let mint = Pubkey::new_unique();
 

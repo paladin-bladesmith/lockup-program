@@ -49,26 +49,12 @@ fn process_lockup(
     let mint_info = next_account_info(accounts_iter)?;
     let _token_program_info = next_account_info(accounts_iter)?;
 
-    // Ensure the owner account is a signer.
-    if !owner_info.is_signer {
-        return Err(ProgramError::MissingRequiredSignature);
-    }
-
-    // Check the token account.
-    {
-        let token_account_data = token_account_info.try_borrow_data()?;
-        let token_account = StateWithExtensions::<Account>::unpack(&token_account_data)?;
-
-        // Ensure the provided token account is owned by the owner.
-        if &token_account.base.owner != owner_info.key {
-            return Err(ProgramError::IncorrectAuthority);
-        }
-
-        // Ensure the provided token account is for the mint.
-        if &token_account.base.mint != mint_info.key {
-            return Err(PaladinLockupError::TokenAccountMintMismatch.into());
-        }
-    }
+    // Note that Token-2022's `TransferChecked` processor will assert the
+    // following:
+    //
+    // * The provided owner account is a signer.
+    // * The provided owner is authorized to transfer the tokens.
+    // * The provided token account is for the provided mint.
 
     // Ensure the lockup account is owned by the Paladin Lockup program.
     if lockup_info.owner != program_id {
@@ -221,16 +207,8 @@ fn process_withdraw(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramRes
     let mint_info = next_account_info(accounts_iter)?;
     let _token_program_info = next_account_info(accounts_iter)?;
 
-    // Ensure the provided token account is correct for the mint.
-    {
-        let token_account_data = token_account_info.try_borrow_data()?;
-        let token_account = StateWithExtensions::<Account>::unpack(&token_account_data)?;
-
-        // Ensure the provided token account is for the mint.
-        if &token_account.base.mint != mint_info.key {
-            return Err(PaladinLockupError::TokenAccountMintMismatch.into());
-        }
-    }
+    // Note that Token-2022's `TransferChecked` processor will assert the
+    // provided token account is for the provided mint.
 
     // Ensure the lockup account is owned by the Paladin Lockup program.
     if lockup_info.owner != program_id {
