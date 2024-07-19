@@ -20,7 +20,7 @@ pub enum PaladinLockupInstruction {
     ///
     /// Accounts expected by this instruction:
     ///
-    /// 0. `[s]` Depositor owner.
+    /// 0. `[s]` Authority.
     /// 1. `[w]` Depositor token account.
     /// 2. `[w]` Lockup account.
     /// 3. `[ ]` Escrow authority.
@@ -32,20 +32,20 @@ pub enum PaladinLockupInstruction {
     ///
     /// Accounts expected by this instruction:
     ///
-    /// 0. `[s]` Depositor owner.
-    /// 1. `[ ]` Depositor token account.
+    /// 0. `[s]` Authority.
     /// 2. `[w]` Lockup account.
     Unlock,
     /// Withdraw tokens from a lockup account.
     ///
     /// Accounts expected by this instruction:
     ///
-    /// 0. `[w]` Depositor token account.
-    /// 1. `[w]` Lockup account.
-    /// 2. `[ ]` Escrow authority.
-    /// 3. `[w]` Escrow token account.
-    /// 4. `[ ]` Token mint.
-    /// 5. `[ ]` Token program.
+    /// 0. `[s]` Authority.
+    /// 1. `[w]` Destination token account.
+    /// 2. `[w]` Lockup account.
+    /// 3. `[ ]` Escrow authority.
+    /// 4. `[w]` Escrow token account.
+    /// 5. `[ ]` Token mint.
+    /// 6. `[ ]` Token program.
     Withdraw,
     /// Initialize the escrow account.
     ///
@@ -109,7 +109,7 @@ impl PaladinLockupInstruction {
 /// [Lockup](enum.PaladinLockupInstruction.html)
 /// instruction.
 pub fn lockup(
-    owner_address: &Pubkey,
+    authority_address: &Pubkey,
     token_account_address: &Pubkey,
     lockup_address: &Pubkey,
     mint_address: &Pubkey,
@@ -119,7 +119,7 @@ pub fn lockup(
     let escrow_authority_address = get_escrow_authority_address(&crate::id());
     let escrow_token_account_address = get_escrow_token_account_address(&crate::id(), mint_address);
     let accounts = vec![
-        AccountMeta::new_readonly(*owner_address, true),
+        AccountMeta::new_readonly(*authority_address, true),
         AccountMeta::new(*token_account_address, false),
         AccountMeta::new(*lockup_address, false),
         AccountMeta::new_readonly(escrow_authority_address, false),
@@ -138,14 +138,9 @@ pub fn lockup(
 /// Creates an
 /// [Unlock](enum.PaladinLockupInstruction.html)
 /// instruction.
-pub fn unlock(
-    owner_address: &Pubkey,
-    token_account_address: &Pubkey,
-    lockup_address: &Pubkey,
-) -> Instruction {
+pub fn unlock(authority_address: &Pubkey, lockup_address: &Pubkey) -> Instruction {
     let accounts = vec![
-        AccountMeta::new_readonly(*owner_address, true),
-        AccountMeta::new_readonly(*token_account_address, false),
+        AccountMeta::new_readonly(*authority_address, true),
         AccountMeta::new(*lockup_address, false),
     ];
     let data = PaladinLockupInstruction::Unlock.pack();
@@ -156,6 +151,7 @@ pub fn unlock(
 /// [Withdraw](enum.PaladinLockupInstruction.html)
 /// instruction.
 pub fn withdraw(
+    authority_address: &Pubkey,
     token_account_address: &Pubkey,
     lockup_address: &Pubkey,
     mint_address: &Pubkey,
@@ -163,6 +159,7 @@ pub fn withdraw(
     let escrow_authority_address = get_escrow_authority_address(&crate::id());
     let escrow_token_account_address = get_escrow_token_account_address(&crate::id(), mint_address);
     let accounts = vec![
+        AccountMeta::new_readonly(*authority_address, true),
         AccountMeta::new(*token_account_address, false),
         AccountMeta::new(*lockup_address, false),
         AccountMeta::new_readonly(escrow_authority_address, false),

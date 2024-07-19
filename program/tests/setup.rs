@@ -115,7 +115,7 @@ pub async fn setup_system_account(
 pub async fn setup_lockup(
     context: &mut ProgramTestContext,
     address: &Pubkey,
-    depository: &Pubkey,
+    authority: &Pubkey,
     amount: u64,
     lockup_start_timestamp: u64,
     lockup_end_timestamp: u64,
@@ -123,7 +123,7 @@ pub async fn setup_lockup(
 ) {
     let state = Lockup::new(
         amount,
-        depository,
+        authority,
         lockup_start_timestamp,
         lockup_end_timestamp,
         mint_address,

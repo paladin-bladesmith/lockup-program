@@ -210,7 +210,7 @@ async fn test_e2e() {
             &alice_lockup.pubkey(),
             &Lockup::new(
                 alice_lockup_amount,
-                &alice_token_account,
+                &alice.pubkey(),
                 expected_lockup_start,
                 expected_lockup_end,
                 &mint,
@@ -240,11 +240,12 @@ async fn test_e2e() {
         send_transaction_with_expected_err(
             &mut context,
             &[paladin_lockup_program::instruction::withdraw(
+                &alice.pubkey(),
                 &alice_token_account,
                 &alice_lockup.pubkey(),
                 &mint,
             )],
-            &[&payer],
+            &[&payer, &alice],
             TransactionError::InstructionError(
                 0,
                 InstructionError::Custom(PaladinLockupError::LockupActive as u32),
@@ -267,11 +268,12 @@ async fn test_e2e() {
         send_transaction(
             &mut context,
             &[paladin_lockup_program::instruction::withdraw(
+                &alice.pubkey(),
                 &alice_token_account,
                 &alice_lockup.pubkey(),
                 &mint,
             )],
-            &[&payer],
+            &[&payer, &alice],
         )
         .await;
 
@@ -337,7 +339,7 @@ async fn test_e2e() {
             &bob_lockup.pubkey(),
             &Lockup::new(
                 bob_lockup_amount,
-                &bob_token_account,
+                &bob.pubkey(),
                 expected_lockup_start,
                 expected_lockup_end,
                 &mint,
@@ -367,11 +369,12 @@ async fn test_e2e() {
         send_transaction_with_expected_err(
             &mut context,
             &[paladin_lockup_program::instruction::withdraw(
+                &bob.pubkey(),
                 &bob_token_account,
                 &bob_lockup.pubkey(),
                 &mint,
             )],
-            &[&payer],
+            &[&payer, &bob],
             TransactionError::InstructionError(
                 0,
                 InstructionError::Custom(PaladinLockupError::LockupActive as u32),
@@ -392,7 +395,6 @@ async fn test_e2e() {
             &mut context,
             &[paladin_lockup_program::instruction::unlock(
                 &bob.pubkey(),
-                &bob_token_account,
                 &bob_lockup.pubkey(),
             )],
             &[&payer, &bob],
@@ -408,7 +410,7 @@ async fn test_e2e() {
             &bob_lockup.pubkey(),
             &Lockup::new(
                 bob_lockup_amount,
-                &bob_token_account,
+                &bob.pubkey(),
                 expected_lockup_start,
                 expected_lockup_end,
                 &mint,
@@ -422,11 +424,12 @@ async fn test_e2e() {
         send_transaction(
             &mut context,
             &[paladin_lockup_program::instruction::withdraw(
+                &bob.pubkey(),
                 &bob_token_account,
                 &bob_lockup.pubkey(),
                 &mint,
             )],
-            &[&payer],
+            &[&payer, &bob],
         )
         .await;
 

@@ -41,7 +41,7 @@ fn process_lockup(
 ) -> ProgramResult {
     let accounts_iter = &mut accounts.iter();
 
-    let owner_info = next_account_info(accounts_iter)?;
+    let authority_info = next_account_info(accounts_iter)?;
     let token_account_info = next_account_info(accounts_iter)?;
     let lockup_info = next_account_info(accounts_iter)?;
     let escrow_authority_info = next_account_info(accounts_iter)?;
@@ -52,8 +52,8 @@ fn process_lockup(
     // Note that Token-2022's `TransferChecked` processor will assert the
     // following:
     //
-    // * The provided owner account is a signer.
-    // * The provided owner is authorized to transfer the tokens.
+    // * The provided authority account is a signer.
+    // * The provided authority is authorized to transfer the tokens.
     // * The provided token account is for the provided mint.
 
     // Ensure the lockup account is owned by the Paladin Lockup program.
@@ -100,7 +100,7 @@ fn process_lockup(
     *bytemuck::try_from_bytes_mut(&mut data).map_err(|_| ProgramError::InvalidAccountData)? =
         Lockup::new(
             amount,
-            token_account_info.key,
+            authority_info.key,
             lockup_start_timestamp,
             lockup_end_timestamp,
             mint_info.key,
@@ -119,7 +119,7 @@ fn process_lockup(
             token_account_info.clone(),
             mint_info.clone(),
             escrow_token_account_info.clone(),
-            owner_info.clone(),
+            authority_info.clone(),
             accounts_iter.as_slice(),
             amount,
             decimals,
@@ -136,22 +136,12 @@ fn process_lockup(
 fn process_unlock(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
     let accounts_iter = &mut accounts.iter();
 
-    let owner_info = next_account_info(accounts_iter)?;
-    let token_account_info = next_account_info(accounts_iter)?;
+    let authority_info = next_account_info(accounts_iter)?;
     let lockup_info = next_account_info(accounts_iter)?;
 
-    // Ensure the owner account is a signer.
-    if !owner_info.is_signer {
+    // Ensure the authority is a signer.
+    if !authority_info.is_signer {
         return Err(ProgramError::MissingRequiredSignature);
-    }
-
-    // Ensure the provided owner is the owner of the depositor token account.
-    {
-        let token_account_data = token_account_info.try_borrow_data()?;
-        let token_account = StateWithExtensions::<Account>::unpack(&token_account_data)?;
-        if &token_account.base.owner != owner_info.key {
-            return Err(ProgramError::IncorrectAuthority);
-        }
     }
 
     // Ensure the lockup account is owned by the Paladin Lockup program.
@@ -170,9 +160,8 @@ fn process_unlock(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResul
     let state = bytemuck::try_from_bytes_mut::<Lockup>(&mut data)
         .map_err(|_| ProgramError::InvalidAccountData)?;
 
-    // Ensure the provided depositor account is the same as the lockup's
-    // depositor.
-    if state.depositor != *token_account_info.key {
+    // Ensure the provided authority is the same as the lockup's authority.
+    if state.authority != *authority_info.key {
         return Err(ProgramError::IncorrectAuthority);
     }
 
@@ -193,6 +182,7 @@ fn process_unlock(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResul
 fn process_withdraw(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
     let accounts_iter = &mut accounts.iter();
 
+    let authority_info = next_account_info(accounts_iter)?;
     let token_account_info = next_account_info(accounts_iter)?;
     let lockup_info = next_account_info(accounts_iter)?;
     let escrow_authority_info = next_account_info(accounts_iter)?;
@@ -202,6 +192,11 @@ fn process_withdraw(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramRes
 
     // Note that Token-2022's `TransferChecked` processor will assert the
     // provided token account is for the provided mint.
+
+    // Ensure the authority is a signer.
+    if !authority_info.is_signer {
+        return Err(ProgramError::MissingRequiredSignature);
+    }
 
     // Ensure the lockup account is owned by the Paladin Lockup program.
     if lockup_info.owner != program_id {
@@ -235,9 +230,8 @@ fn process_withdraw(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramRes
         let state = bytemuck::try_from_bytes::<Lockup>(&data)
             .map_err(|_| ProgramError::InvalidAccountData)?;
 
-        // Ensure the provided depositor account is the same as the lockup's
-        // depositor.
-        if state.depositor != *token_account_info.key {
+        // Ensure the provided authority is the same as the lockup's authority.
+        if state.authority != *authority_info.key {
             return Err(ProgramError::IncorrectAuthority);
         }
 

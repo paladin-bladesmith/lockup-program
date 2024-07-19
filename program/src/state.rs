@@ -63,8 +63,8 @@ pub struct Lockup {
     discriminator: [u8; 8],
     /// Amount of tokens locked up in the escrow.
     pub amount: u64,
-    /// The depositor who created the lockup.
-    pub depositor: Pubkey,
+    /// The lockup's authority.
+    pub authority: Pubkey,
     /// The start of the lockup period.
     pub lockup_start_timestamp: u64,
     /// The end of the lockup period.
@@ -77,7 +77,7 @@ impl Lockup {
     /// Create a new lockup account.
     pub fn new(
         amount: u64,
-        depositor: &Pubkey,
+        authority: &Pubkey,
         lockup_start_timestamp: u64,
         lockup_end_timestamp: u64,
         mint: &Pubkey,
@@ -85,7 +85,7 @@ impl Lockup {
         Self {
             discriminator: Self::SPL_DISCRIMINATOR.into(),
             amount,
-            depositor: *depositor,
+            authority: *authority,
             lockup_start_timestamp,
             lockup_end_timestamp,
             mint: *mint,
