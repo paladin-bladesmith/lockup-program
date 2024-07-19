@@ -1,4 +1,4 @@
-// ! End-to-end test.
+//! End-to-end test.
 
 #![cfg(feature = "test-sbf")]
 
