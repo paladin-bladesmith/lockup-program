@@ -20,20 +20,21 @@ pub enum PaladinLockupInstruction {
     ///
     /// Accounts expected by this instruction:
     ///
-    /// 0. `[s]` Authority.
-    /// 1. `[w]` Depositor token account.
-    /// 2. `[w]` Lockup account.
-    /// 3. `[ ]` Escrow authority.
-    /// 4. `[w]` Escrow token account.
-    /// 5. `[ ]` Token mint.
-    /// 6. `[ ]` Token program.
+    /// 0. `[s]` Lockup authority.
+    /// 1. `[s]` Token owner.
+    /// 2. `[w]` Depositor token account.
+    /// 3. `[w]` Lockup account.
+    /// 4. `[ ]` Escrow authority.
+    /// 5. `[w]` Escrow token account.
+    /// 6. `[ ]` Token mint.
+    /// 7. `[ ]` Token program.
     Lockup { amount: u64, period_seconds: u64 },
     /// Unlock a token lockup, enabling the tokens for withdrawal.
     ///
     /// Accounts expected by this instruction:
     ///
-    /// 0. `[s]` Authority.
-    /// 2. `[w]` Lockup account.
+    /// 0. `[s]` Lockup authority.
+    /// 1. `[w]` Lockup account.
     Unlock,
     /// Withdraw tokens from a lockup account.
     ///
@@ -42,7 +43,7 @@ pub enum PaladinLockupInstruction {
     ///
     /// Accounts expected by this instruction:
     ///
-    /// 0. `[s]` Authority.
+    /// 0. `[s]` Lockup authority.
     /// 1. `[w]` Lamport destination.
     /// 2. `[w]` Token destination.
     /// 3. `[w]` Lockup account.
@@ -96,8 +97,10 @@ impl PaladinLockupInstruction {
 /// Creates a
 /// [Lockup](enum.PaladinLockupInstruction.html)
 /// instruction.
+#[allow(clippy::too_many_arguments)]
 pub fn lockup(
-    authority_address: &Pubkey,
+    lockup_authority_address: &Pubkey,
+    token_owner_address: &Pubkey,
     token_account_address: &Pubkey,
     lockup_address: &Pubkey,
     mint_address: &Pubkey,
@@ -112,7 +115,8 @@ pub fn lockup(
         token_program_id,
     );
     let accounts = vec![
-        AccountMeta::new_readonly(*authority_address, true),
+        AccountMeta::new_readonly(*lockup_authority_address, true),
+        AccountMeta::new_readonly(*token_owner_address, true),
         AccountMeta::new(*token_account_address, false),
         AccountMeta::new(*lockup_address, false),
         AccountMeta::new_readonly(escrow_authority_address, false),
@@ -131,9 +135,9 @@ pub fn lockup(
 /// Creates an
 /// [Unlock](enum.PaladinLockupInstruction.html)
 /// instruction.
-pub fn unlock(authority_address: &Pubkey, lockup_address: &Pubkey) -> Instruction {
+pub fn unlock(lockup_authority_address: &Pubkey, lockup_address: &Pubkey) -> Instruction {
     let accounts = vec![
-        AccountMeta::new_readonly(*authority_address, true),
+        AccountMeta::new_readonly(*lockup_authority_address, true),
         AccountMeta::new(*lockup_address, false),
     ];
     let data = PaladinLockupInstruction::Unlock.pack();
@@ -144,7 +148,7 @@ pub fn unlock(authority_address: &Pubkey, lockup_address: &Pubkey) -> Instructio
 /// [Withdraw](enum.PaladinLockupInstruction.html)
 /// instruction.
 pub fn withdraw(
-    authority_address: &Pubkey,
+    lockup_authority_address: &Pubkey,
     lamport_destination_address: &Pubkey,
     token_destination_address: &Pubkey,
     lockup_address: &Pubkey,
@@ -158,7 +162,7 @@ pub fn withdraw(
         token_program_id,
     );
     let accounts = vec![
-        AccountMeta::new_readonly(*authority_address, true),
+        AccountMeta::new_readonly(*lockup_authority_address, true),
         AccountMeta::new(*lamport_destination_address, false),
         AccountMeta::new(*token_destination_address, false),
         AccountMeta::new(*lockup_address, false),

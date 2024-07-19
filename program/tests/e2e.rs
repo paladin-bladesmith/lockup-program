@@ -176,6 +176,7 @@ async fn test_e2e() {
                 system_instruction::assign(&alice_lockup.pubkey(), &paladin_lockup_program::id()),
                 paladin_lockup_program::instruction::lockup(
                     &alice.pubkey(),
+                    &alice.pubkey(),
                     &alice_token_account,
                     &alice_lockup.pubkey(),
                     &mint,
@@ -309,6 +310,7 @@ async fn test_e2e() {
                 system_instruction::allocate(&bob_lockup.pubkey(), space as u64),
                 system_instruction::assign(&bob_lockup.pubkey(), &paladin_lockup_program::id()),
                 paladin_lockup_program::instruction::lockup(
+                    &bob.pubkey(),
                     &bob.pubkey(),
                     &bob_token_account,
                     &bob_lockup.pubkey(),

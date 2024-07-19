@@ -35,7 +35,8 @@ fn process_lockup(
 ) -> ProgramResult {
     let accounts_iter = &mut accounts.iter();
 
-    let authority_info = next_account_info(accounts_iter)?;
+    let lockup_authority_info = next_account_info(accounts_iter)?;
+    let token_owner_info = next_account_info(accounts_iter)?;
     let token_account_info = next_account_info(accounts_iter)?;
     let lockup_info = next_account_info(accounts_iter)?;
     let escrow_authority_info = next_account_info(accounts_iter)?;
@@ -43,12 +44,10 @@ fn process_lockup(
     let mint_info = next_account_info(accounts_iter)?;
     let token_program_info = next_account_info(accounts_iter)?;
 
-    // Note that Token-2022's `TransferChecked` processor will assert the
-    // following:
-    //
-    // * The provided authority account is a signer.
-    // * The provided authority is authorized to transfer the tokens.
-    // * The provided token account is for the provided mint.
+    // Ensure the lockup authority is a signer.
+    if !lockup_authority_info.is_signer {
+        return Err(ProgramError::MissingRequiredSignature);
+    }
 
     // Ensure the lockup account is owned by the Paladin Lockup program.
     if lockup_info.owner != program_id {
@@ -98,7 +97,7 @@ fn process_lockup(
     *bytemuck::try_from_bytes_mut(&mut data).map_err(|_| ProgramError::InvalidAccountData)? =
         Lockup::new(
             amount,
-            authority_info.key,
+            lockup_authority_info.key,
             lockup_start_timestamp,
             lockup_end_timestamp,
             mint_info.key,
@@ -117,7 +116,7 @@ fn process_lockup(
             token_account_info.clone(),
             mint_info.clone(),
             escrow_token_account_info.clone(),
-            authority_info.clone(),
+            token_owner_info.clone(),
             accounts_iter.as_slice(),
             amount,
             decimals,
@@ -134,11 +133,11 @@ fn process_lockup(
 fn process_unlock(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
     let accounts_iter = &mut accounts.iter();
 
-    let authority_info = next_account_info(accounts_iter)?;
+    let lockup_authority_info = next_account_info(accounts_iter)?;
     let lockup_info = next_account_info(accounts_iter)?;
 
-    // Ensure the authority is a signer.
-    if !authority_info.is_signer {
+    // Ensure the lockup authority is a signer.
+    if !lockup_authority_info.is_signer {
         return Err(ProgramError::MissingRequiredSignature);
     }
 
@@ -159,7 +158,7 @@ fn process_unlock(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResul
         .map_err(|_| ProgramError::InvalidAccountData)?;
 
     // Ensure the provided authority is the same as the lockup's authority.
-    if state.authority != *authority_info.key {
+    if state.authority != *lockup_authority_info.key {
         return Err(ProgramError::IncorrectAuthority);
     }
 
@@ -180,7 +179,7 @@ fn process_unlock(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResul
 fn process_withdraw(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
     let accounts_iter = &mut accounts.iter();
 
-    let authority_info = next_account_info(accounts_iter)?;
+    let lockup_authority_info = next_account_info(accounts_iter)?;
     let lamport_destination_info = next_account_info(accounts_iter)?;
     let token_destination_info = next_account_info(accounts_iter)?;
     let lockup_info = next_account_info(accounts_iter)?;
@@ -192,8 +191,8 @@ fn process_withdraw(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramRes
     // Note that Token-2022's `TransferChecked` processor will assert the
     // provided token account is for the provided mint.
 
-    // Ensure the authority is a signer.
-    if !authority_info.is_signer {
+    // Ensure the lockup authority is a signer.
+    if !lockup_authority_info.is_signer {
         return Err(ProgramError::MissingRequiredSignature);
     }
 
@@ -234,7 +233,7 @@ fn process_withdraw(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramRes
             .map_err(|_| ProgramError::InvalidAccountData)?;
 
         // Ensure the provided authority is the same as the lockup's authority.
-        if state.authority != *authority_info.key {
+        if state.authority != *lockup_authority_info.key {
             return Err(ProgramError::IncorrectAuthority);
         }
 

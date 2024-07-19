@@ -18,7 +18,7 @@ use {
 };
 
 #[tokio::test]
-async fn fail_authority_not_signer() {
+async fn fail_lockup_authority_not_signer() {
     let authority = Keypair::new();
     let lockup = Pubkey::new_unique();
 

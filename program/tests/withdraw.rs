@@ -23,7 +23,7 @@ use {
 };
 
 #[tokio::test]
-async fn fail_authority_not_signer() {
+async fn fail_lockup_authority_not_signer() {
     let mint = Pubkey::new_unique();
 
     let authority = Keypair::new();
