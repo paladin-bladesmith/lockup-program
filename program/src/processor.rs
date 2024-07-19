@@ -181,7 +181,8 @@ fn process_withdraw(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramRes
     let accounts_iter = &mut accounts.iter();
 
     let authority_info = next_account_info(accounts_iter)?;
-    let token_account_info = next_account_info(accounts_iter)?;
+    let lamport_destination_info = next_account_info(accounts_iter)?;
+    let token_destination_info = next_account_info(accounts_iter)?;
     let lockup_info = next_account_info(accounts_iter)?;
     let escrow_authority_info = next_account_info(accounts_iter)?;
     let escrow_token_account_info = next_account_info(accounts_iter)?;
@@ -271,7 +272,7 @@ fn process_withdraw(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramRes
             &spl_token_2022::id(),
             escrow_token_account_info.clone(),
             mint_info.clone(),
-            token_account_info.clone(),
+            token_destination_info.clone(),
             escrow_authority_info.clone(),
             accounts_iter.as_slice(),
             withdraw_amount,
@@ -280,13 +281,13 @@ fn process_withdraw(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramRes
         )?;
     }
 
-    let new_token_account_lamports = lockup_info
+    let new_destination_lamports = lockup_info
         .lamports()
-        .checked_add(token_account_info.lamports())
+        .checked_add(lamport_destination_info.lamports())
         .ok_or(ProgramError::ArithmeticOverflow)?;
 
     **lockup_info.try_borrow_mut_lamports()? = 0;
-    **token_account_info.try_borrow_mut_lamports()? = new_token_account_lamports;
+    **lamport_destination_info.try_borrow_mut_lamports()? = new_destination_lamports;
 
     lockup_info.realloc(0, true)?;
     lockup_info.assign(&system_program::id());

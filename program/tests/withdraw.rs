@@ -40,6 +40,7 @@ async fn fail_authority_not_signer() {
     let mut instruction = paladin_lockup_program::instruction::withdraw(
         &authority.pubkey(),
         &token_account,
+        &token_account,
         &lockup,
         &mint,
         &spl_token_2022::id(),
@@ -103,6 +104,7 @@ async fn fail_incorrect_lockup_owner() {
     let instruction = paladin_lockup_program::instruction::withdraw(
         &authority.pubkey(),
         &token_account,
+        &token_account,
         &lockup,
         &mint,
         &spl_token_2022::id(),
@@ -165,6 +167,7 @@ async fn fail_lockup_not_enough_space() {
     let instruction = paladin_lockup_program::instruction::withdraw(
         &authority.pubkey(),
         &token_account,
+        &token_account,
         &lockup,
         &mint,
         &spl_token_2022::id(),
@@ -226,6 +229,7 @@ async fn fail_lockup_already_initialized() {
 
     let instruction = paladin_lockup_program::instruction::withdraw(
         &authority.pubkey(),
+        &token_account,
         &token_account,
         &lockup,
         &mint,
@@ -291,11 +295,12 @@ async fn fail_incorrect_escrow_authority_address() {
     let mut instruction = paladin_lockup_program::instruction::withdraw(
         &authority.pubkey(),
         &token_account,
+        &token_account,
         &lockup,
         &mint,
         &spl_token_2022::id(),
     );
-    instruction.accounts[3].pubkey = Pubkey::new_unique(); // Incorrect escrow authority address.
+    instruction.accounts[4].pubkey = Pubkey::new_unique(); // Incorrect escrow authority address.
 
     let transaction = Transaction::new_signed_with_payer(
         &[instruction],
@@ -359,11 +364,12 @@ async fn fail_incorrect_escrow_token_account_address() {
     let mut instruction = paladin_lockup_program::instruction::withdraw(
         &authority.pubkey(),
         &token_account,
+        &token_account,
         &lockup,
         &mint,
         &spl_token_2022::id(),
     );
-    instruction.accounts[4].pubkey = Pubkey::new_unique(); // Incorrect escrow token account address.
+    instruction.accounts[5].pubkey = Pubkey::new_unique(); // Incorrect escrow token account address.
 
     let transaction = Transaction::new_signed_with_payer(
         &[instruction],
@@ -426,6 +432,7 @@ async fn fail_lockup_still_active() {
 
     let instruction = paladin_lockup_program::instruction::withdraw(
         &authority.pubkey(),
+        &token_account,
         &token_account,
         &lockup,
         &mint,
@@ -494,6 +501,7 @@ async fn fail_incorrect_lockup_authority() {
     let instruction = paladin_lockup_program::instruction::withdraw(
         &authority.pubkey(),
         &token_account,
+        &token_account,
         &lockup,
         &mint,
         &spl_token_2022::id(),
@@ -558,6 +566,7 @@ async fn fail_incorrect_mint() {
     let instruction = paladin_lockup_program::instruction::withdraw(
         &authority.pubkey(),
         &token_account,
+        &token_account,
         &lockup,
         &mint,
         &spl_token_2022::id(),
@@ -604,6 +613,9 @@ async fn success() {
         &spl_token_2022::id(),
     );
 
+    // Just posterity.
+    let lamport_destination = Pubkey::new_unique();
+
     let escrow_authority = get_escrow_authority_address(&paladin_lockup_program::id());
     let escrow_token_account = get_associated_token_address_with_program_id(
         &escrow_authority,
@@ -613,7 +625,7 @@ async fn success() {
 
     let lockup = Pubkey::new_unique();
 
-    let amount = 10_000;
+    let lockup_amount = 10_000;
 
     let mut context = setup().start_with_context().await;
 
@@ -623,7 +635,7 @@ async fn success() {
         &mut context,
         &lockup,
         &authority.pubkey(),
-        amount,
+        lockup_amount,
         clock.unix_timestamp as u64,
         clock.unix_timestamp as u64, // Now (unlocked).
         &mint,
@@ -648,6 +660,13 @@ async fn success() {
     setup_mint(&mut context, &mint, &Pubkey::new_unique(), 1_000_000).await;
 
     // For checks later.
+    let lockup_account_start_lamports = context
+        .banks_client
+        .get_account(lockup)
+        .await
+        .unwrap()
+        .unwrap()
+        .lamports;
     let token_account_start_balance = get_token_account_balance(
         &context
             .banks_client
@@ -667,6 +686,7 @@ async fn success() {
 
     let instruction = paladin_lockup_program::instruction::withdraw(
         &authority.pubkey(),
+        &lamport_destination,
         &token_account,
         &lockup,
         &mint,
@@ -685,6 +705,19 @@ async fn success() {
         .process_transaction(transaction)
         .await
         .unwrap();
+
+    // Check the resulting destination lamport balance.
+    let lamport_destination_end_balance = context
+        .banks_client
+        .get_account(lamport_destination)
+        .await
+        .unwrap()
+        .unwrap()
+        .lamports;
+    assert_eq!(
+        lamport_destination_end_balance,
+        lockup_account_start_lamports
+    );
 
     // Check the resulting token account balances.
     let token_account_end_balance = get_token_account_balance(
@@ -706,10 +739,10 @@ async fn success() {
 
     assert_eq!(
         token_account_end_balance,
-        token_account_start_balance.saturating_add(amount)
+        token_account_start_balance.saturating_add(lockup_amount)
     );
     assert_eq!(
         escrow_token_account_end_balance,
-        escrow_token_account_start_balance.saturating_sub(amount)
+        escrow_token_account_start_balance.saturating_sub(lockup_amount)
     );
 }

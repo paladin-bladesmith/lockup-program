@@ -37,15 +37,19 @@ pub enum PaladinLockupInstruction {
     Unlock,
     /// Withdraw tokens from a lockup account.
     ///
+    /// Note this instruction accepts a destination account for both lamports
+    /// (from the closed lockup account's rent lamports) and tokens.
+    ///
     /// Accounts expected by this instruction:
     ///
     /// 0. `[s]` Authority.
-    /// 1. `[w]` Destination token account.
-    /// 2. `[w]` Lockup account.
-    /// 3. `[ ]` Escrow authority.
-    /// 4. `[w]` Escrow token account.
-    /// 5. `[ ]` Token mint.
-    /// 6. `[ ]` Token program.
+    /// 1. `[w]` Lamport destination.
+    /// 2. `[w]` Token destination.
+    /// 3. `[w]` Lockup account.
+    /// 4. `[ ]` Escrow authority.
+    /// 5. `[w]` Escrow token account.
+    /// 6. `[ ]` Token mint.
+    /// 7. `[ ]` Token program.
     Withdraw,
 }
 
@@ -141,7 +145,8 @@ pub fn unlock(authority_address: &Pubkey, lockup_address: &Pubkey) -> Instructio
 /// instruction.
 pub fn withdraw(
     authority_address: &Pubkey,
-    token_account_address: &Pubkey,
+    lamport_destination_address: &Pubkey,
+    token_destination_address: &Pubkey,
     lockup_address: &Pubkey,
     mint_address: &Pubkey,
     token_program_id: &Pubkey,
@@ -154,7 +159,8 @@ pub fn withdraw(
     );
     let accounts = vec![
         AccountMeta::new_readonly(*authority_address, true),
-        AccountMeta::new(*token_account_address, false),
+        AccountMeta::new(*lamport_destination_address, false),
+        AccountMeta::new(*token_destination_address, false),
         AccountMeta::new(*lockup_address, false),
         AccountMeta::new_readonly(escrow_authority_address, false),
         AccountMeta::new(escrow_token_account_address, false),

@@ -228,6 +228,7 @@ async fn test_e2e() {
             &mut context,
             &[paladin_lockup_program::instruction::withdraw(
                 &alice.pubkey(),
+                &alice.pubkey(),
                 &alice_token_account,
                 &alice_lockup.pubkey(),
                 &mint,
@@ -256,6 +257,7 @@ async fn test_e2e() {
         send_transaction(
             &mut context,
             &[paladin_lockup_program::instruction::withdraw(
+                &alice.pubkey(),
                 &alice.pubkey(),
                 &alice_token_account,
                 &alice_lockup.pubkey(),
@@ -360,6 +362,7 @@ async fn test_e2e() {
             &mut context,
             &[paladin_lockup_program::instruction::withdraw(
                 &bob.pubkey(),
+                &bob.pubkey(),
                 &bob_token_account,
                 &bob_lockup.pubkey(),
                 &mint,
@@ -415,6 +418,7 @@ async fn test_e2e() {
         send_transaction(
             &mut context,
             &[paladin_lockup_program::instruction::withdraw(
+                &bob.pubkey(),
                 &bob.pubkey(),
                 &bob_token_account,
                 &bob_lockup.pubkey(),
