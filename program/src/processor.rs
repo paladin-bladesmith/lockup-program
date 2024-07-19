@@ -23,7 +23,7 @@ use {
         system_instruction, system_program,
         sysvar::Sysvar,
     },
-    spl_discriminator::SplDiscriminate,
+    spl_discriminator::{ArrayDiscriminator, SplDiscriminate},
     spl_token_2022::{
         extension::StateWithExtensions,
         state::{Account, Mint},
@@ -67,7 +67,7 @@ fn process_lockup(
     }
 
     // Ensure the lockup account is not initialized.
-    if &lockup_info.try_borrow_data()?[0..8] == Lockup::SPL_DISCRIMINATOR_SLICE {
+    if &lockup_info.try_borrow_data()?[0..8] != ArrayDiscriminator::UNINITIALIZED.as_slice() {
         return Err(ProgramError::AccountAlreadyInitialized);
     }
 
