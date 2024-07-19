@@ -114,23 +114,16 @@ fn process_lockup(
             mint.base.decimals
         };
 
-        invoke(
-            &spl_token_2022::instruction::transfer_checked(
-                &spl_token_2022::id(),
-                token_account_info.key,
-                mint_info.key,
-                escrow_token_account_info.key,
-                owner_info.key,
-                &[],
-                amount,
-                decimals,
-            )?,
-            &[
-                token_account_info.clone(),
-                mint_info.clone(),
-                escrow_token_account_info.clone(),
-                owner_info.clone(),
-            ],
+        spl_token_2022::onchain::invoke_transfer_checked(
+            &spl_token_2022::id(),
+            token_account_info.clone(),
+            mint_info.clone(),
+            escrow_token_account_info.clone(),
+            owner_info.clone(),
+            accounts_iter.as_slice(),
+            amount,
+            decimals,
+            &[],
         )?;
     }
 
@@ -278,23 +271,15 @@ fn process_withdraw(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramRes
             mint.base.decimals
         };
 
-        invoke_signed(
-            &spl_token_2022::instruction::transfer_checked(
-                &spl_token_2022::id(),
-                escrow_token_account_info.key,
-                mint_info.key,
-                token_account_info.key,
-                escrow_authority_info.key,
-                &[],
-                withdraw_amount,
-                decimals,
-            )?,
-            &[
-                escrow_token_account_info.clone(),
-                mint_info.clone(),
-                token_account_info.clone(),
-                escrow_authority_info.clone(),
-            ],
+        spl_token_2022::onchain::invoke_transfer_checked(
+            &spl_token_2022::id(),
+            escrow_token_account_info.clone(),
+            mint_info.clone(),
+            token_account_info.clone(),
+            escrow_authority_info.clone(),
+            accounts_iter.as_slice(),
+            withdraw_amount,
+            decimals,
             &[&escrow_authority_signer_seeds],
         )?;
     }
