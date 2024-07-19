@@ -69,6 +69,8 @@ pub struct Lockup {
     pub lockup_start_timestamp: u64,
     /// The end of the lockup period.
     pub lockup_end_timestamp: u64,
+    /// The address of the mint this lockup supports.
+    pub mint: Pubkey,
 }
 
 impl Lockup {
@@ -78,6 +80,7 @@ impl Lockup {
         depositor: &Pubkey,
         lockup_start_timestamp: u64,
         lockup_end_timestamp: u64,
+        mint: &Pubkey,
     ) -> Self {
         Self {
             discriminator: Self::SPL_DISCRIMINATOR.into(),
@@ -85,6 +88,7 @@ impl Lockup {
             depositor: *depositor,
             lockup_start_timestamp,
             lockup_end_timestamp,
+            mint: *mint,
         }
     }
 }

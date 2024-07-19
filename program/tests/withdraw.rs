@@ -227,6 +227,7 @@ async fn fail_incorrect_escrow_authority_address() {
         10_000,
         clock.unix_timestamp as u64,
         clock.unix_timestamp as u64, // Now (unlocked).
+        &mint,
     )
     .await;
 
@@ -279,6 +280,7 @@ async fn fail_incorrect_escrow_token_account_address() {
         10_000,
         clock.unix_timestamp as u64,
         clock.unix_timestamp as u64, // Now (unlocked).
+        &mint,
     )
     .await;
 
@@ -331,6 +333,7 @@ async fn fail_lockup_still_active() {
         10_000,
         clock.unix_timestamp as u64,
         (clock.unix_timestamp as u64).saturating_add(1_000), // NOT unlocked.
+        &mint,
     )
     .await;
 
@@ -381,6 +384,7 @@ async fn fail_incorrect_depositor() {
         10_000,
         clock.unix_timestamp as u64,
         clock.unix_timestamp as u64, // Now (unlocked).
+        &mint,
     )
     .await;
 
@@ -441,6 +445,7 @@ async fn success() {
         amount,
         clock.unix_timestamp as u64,
         clock.unix_timestamp as u64, // Now (unlocked).
+        &mint,
     )
     .await;
     setup_token_account(&mut context, &token_account, &owner.pubkey(), &mint, 10_000).await;

@@ -506,7 +506,8 @@ async fn success(amount: u64, period_seconds: u64) {
             amount,
             &token_account,
             clock.unix_timestamp as u64,
-            (clock.unix_timestamp as u64).saturating_add(period_seconds)
+            (clock.unix_timestamp as u64).saturating_add(period_seconds),
+            &mint,
         )
     );
 

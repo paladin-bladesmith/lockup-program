@@ -213,6 +213,7 @@ async fn test_e2e() {
                 &alice_token_account,
                 expected_lockup_start,
                 expected_lockup_end,
+                &mint,
             ),
         )
         .await;
@@ -339,6 +340,7 @@ async fn test_e2e() {
                 &bob_token_account,
                 expected_lockup_start,
                 expected_lockup_end,
+                &mint,
             ),
         )
         .await;
@@ -409,6 +411,7 @@ async fn test_e2e() {
                 &bob_token_account,
                 expected_lockup_start,
                 expected_lockup_end,
+                &mint,
             ),
         )
         .await;

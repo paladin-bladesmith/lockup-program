@@ -117,6 +117,7 @@ fn process_lockup(
             token_account_info.key,
             lockup_start_timestamp,
             lockup_end_timestamp,
+            mint_info.key,
         );
 
     // Transfer the tokens to the escrow token account.

@@ -257,6 +257,7 @@ async fn fail_incorrect_depositor() {
         10_000,
         10_000,
         10_000,
+        &mint,
     )
     .await;
 
@@ -307,6 +308,7 @@ async fn success() {
         10_000, // Amount (unused here).
         start,
         end,
+        &mint,
     )
     .await;
 
