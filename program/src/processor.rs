@@ -44,11 +44,6 @@ fn process_lockup(
     let mint_info = next_account_info(accounts_iter)?;
     let token_program_info = next_account_info(accounts_iter)?;
 
-    // Ensure the lockup authority is a signer.
-    if !lockup_authority_info.is_signer {
-        return Err(ProgramError::MissingRequiredSignature);
-    }
-
     // Ensure the lockup account is owned by the Paladin Lockup program.
     if lockup_info.owner != program_id {
         return Err(ProgramError::InvalidAccountOwner);

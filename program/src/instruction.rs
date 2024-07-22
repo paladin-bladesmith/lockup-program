@@ -20,7 +20,7 @@ pub enum PaladinLockupInstruction {
     ///
     /// Accounts expected by this instruction:
     ///
-    /// 0. `[s]` Lockup authority.
+    /// 0. `[ ]` Lockup authority.
     /// 1. `[s]` Token owner.
     /// 2. `[w]` Depositor token account.
     /// 3. `[w]` Lockup account.
@@ -115,7 +115,7 @@ pub fn lockup(
         token_program_id,
     );
     let accounts = vec![
-        AccountMeta::new_readonly(*lockup_authority_address, true),
+        AccountMeta::new_readonly(*lockup_authority_address, false),
         AccountMeta::new_readonly(*token_owner_address, true),
         AccountMeta::new(*token_account_address, false),
         AccountMeta::new(*lockup_address, false),
