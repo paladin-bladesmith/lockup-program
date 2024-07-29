@@ -1,4 +1,10 @@
 //! Paladin Lockup program.
+//!
+//! Allows for the creation of lockups that can be used to restrict the
+//! transfer of tokens.
+//!
+//! Lockups are created with a duration and will not allow withdrawal
+//! of the locked tokens until the duration has passed.
 
 #[cfg(all(target_os = "solana", feature = "bpf-entrypoint"))]
 mod entrypoint;
