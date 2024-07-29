@@ -1,5 +1,6 @@
 use {
     bytemuck::{Pod, Zeroable},
+    shank::ShankAccount,
     solana_program::pubkey::Pubkey,
     spl_discriminator::SplDiscriminate,
 };
@@ -28,7 +29,7 @@ pub(crate) fn collect_escrow_authority_signer_seeds(bump_seed: &[u8]) -> [&[u8];
 }
 
 /// A lockup account.
-#[derive(Clone, Copy, Debug, PartialEq, Pod, SplDiscriminate, Zeroable)]
+#[derive(Clone, Copy, Debug, PartialEq, Pod, ShankAccount, SplDiscriminate, Zeroable)]
 #[discriminator_hash_input("lockup::state::lockup")]
 #[repr(C)]
 pub struct Lockup {

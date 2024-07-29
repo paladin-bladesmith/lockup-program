@@ -10,6 +10,7 @@ crate-type = ["cdylib", "lib"]
 
 [dependencies]
 bytemuck = { version = "1.16.1", features = ["derive"] }
+shank = "0.4.2"
 solana-program = "2.0.2"
 spl-associated-token-account = { version = "4.0.0", features = ["no-entrypoint"] }
 spl-discriminator = "0.3.0"
