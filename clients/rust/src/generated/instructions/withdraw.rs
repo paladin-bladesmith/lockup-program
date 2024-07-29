@@ -3,10 +3,8 @@
 //! to add features, then rerun kinobi to update it.
 //!
 //! <https://github.com/kinobi-so/kinobi>
-//!
 
-use borsh::BorshDeserialize;
-use borsh::BorshSerialize;
+use borsh::{BorshDeserialize, BorshSerialize};
 
 /// Accounts.
 pub struct Withdraw {
@@ -109,7 +107,8 @@ impl Default for WithdrawInstructionData {
 ///   4. `[]` escrow_authority
 ///   5. `[writable]` escrow_token_account
 ///   6. `[]` token_mint
-///   7. `[optional]` token_program (default to `TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA`)
+///   7. `[optional]` token_program (default to
+///      `TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA`)
 #[derive(Clone, Debug, Default)]
 pub struct WithdrawBuilder {
     lockup_authority: Option<solana_program::pubkey::Pubkey>,
@@ -184,8 +183,8 @@ impl WithdrawBuilder {
         self.token_mint = Some(token_mint);
         self
     }
-    /// `[optional account, default to 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA']`
-    /// Token program
+    /// `[optional account, default to
+    /// 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA']` Token program
     #[inline(always)]
     pub fn token_program(&mut self, token_program: solana_program::pubkey::Pubkey) -> &mut Self {
         self.token_program = Some(token_program);
@@ -515,8 +514,9 @@ impl<'a, 'b> WithdrawCpiBuilder<'a, 'b> {
     }
     /// Add additional accounts to the instruction.
     ///
-    /// Each account is represented by a tuple of the `AccountInfo`, a `bool` indicating whether the account is writable or not,
-    /// and a `bool` indicating whether the account is a signer or not.
+    /// Each account is represented by a tuple of the `AccountInfo`, a `bool`
+    /// indicating whether the account is writable or not, and a `bool`
+    /// indicating whether the account is a signer or not.
     #[inline(always)]
     pub fn add_remaining_accounts(
         &mut self,
