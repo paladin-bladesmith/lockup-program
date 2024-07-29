@@ -4,7 +4,7 @@ import * as k from "kinobi";
 import { rootNodeFromAnchor } from "@kinobi-so/nodes-from-anchor";
 import { renderVisitor as renderJavaScriptVisitor } from "@kinobi-so/renderers-js";
 import { renderVisitor as renderRustVisitor } from "@kinobi-so/renderers-rust";
-import { getAllProgramIdls, getRustfmtToolchain, getToolchainArg } from "./utils.mjs";
+import { getAllProgramIdls, getToolchainArgument } from "./utils.mjs";
 
 // Instanciate Kinobi.
 const [idl, ...additionalIdls] = getAllProgramIdls().map(idl => rootNodeFromAnchor(require(idl)))
@@ -15,7 +15,18 @@ const ciDir = path.join(__dirname, "..", "ci");
 // Update programs.
 kinobi.update(
   k.updateProgramsVisitor({
-    "featureGateProgram": { name: "featureGate" },
+    "paladinRewardsProgram": { name: "rewards" },
+  })
+);
+
+// Update accounts.
+kinobi.update(
+  k.updateAccountsVisitor({
+    escrowAuthority: {
+      seeds: [
+        k.constantPdaSeedNodeFromString("utf8", "escrow_authority"),
+      ],
+    },
   })
 );
 
@@ -33,6 +44,6 @@ kinobi.accept(
   renderRustVisitor(path.join(rustClient, "src", "generated"), {
     formatCode: true,
     crateFolder: rustClient,
-    toolchain: getToolchainArg(getRustfmtToolchain())
+    toolchain: getToolchainArgument('format')
   })
 );
