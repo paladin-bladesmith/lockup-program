@@ -5,7 +5,7 @@
 //! <https://github.com/kinobi-so/kinobi>
 
 use {
-    crate::generated::types::NonZeroU64,
+    crate::hooked::NullableU64,
     borsh::{BorshDeserialize, BorshSerialize},
     solana_program::pubkey::Pubkey,
 };
@@ -21,7 +21,7 @@ pub struct Lockup {
     )]
     pub authority: Pubkey,
     pub lockup_start_timestamp: u64,
-    pub lockup_end_timestamp: Option<NonZeroU64>,
+    pub lockup_end_timestamp: NullableU64,
     #[cfg_attr(
         feature = "serde",
         serde(with = "serde_with::As::<serde_with::DisplayFromStr>")

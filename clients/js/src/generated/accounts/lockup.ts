@@ -17,8 +17,6 @@ import {
   getAddressEncoder,
   getArrayDecoder,
   getArrayEncoder,
-  getOptionDecoder,
-  getOptionEncoder,
   getStructDecoder,
   getStructEncoder,
   getU64Decoder,
@@ -35,22 +33,20 @@ import {
   type FetchAccountsConfig,
   type MaybeAccount,
   type MaybeEncodedAccount,
-  type Option,
-  type OptionOrNullable,
 } from '@solana/web3.js';
 import {
-  getNonZeroU64Decoder,
-  getNonZeroU64Encoder,
-  type NonZeroU64,
-  type NonZeroU64Args,
-} from '../types';
+  getNullableU64Decoder,
+  getNullableU64Encoder,
+  type NullableU64,
+  type NullableU64Args,
+} from '../../hooked';
 
 export type Lockup = {
   discriminator: Array<number>;
   amount: bigint;
   authority: Address;
   lockupStartTimestamp: bigint;
-  lockupEndTimestamp: Option<NonZeroU64>;
+  lockupEndTimestamp: NullableU64;
   mint: Address;
 };
 
@@ -59,7 +55,7 @@ export type LockupArgs = {
   amount: number | bigint;
   authority: Address;
   lockupStartTimestamp: number | bigint;
-  lockupEndTimestamp: OptionOrNullable<NonZeroU64Args>;
+  lockupEndTimestamp: NullableU64Args;
   mint: Address;
 };
 
@@ -69,7 +65,7 @@ export function getLockupEncoder(): Encoder<LockupArgs> {
     ['amount', getU64Encoder()],
     ['authority', getAddressEncoder()],
     ['lockupStartTimestamp', getU64Encoder()],
-    ['lockupEndTimestamp', getOptionEncoder(getNonZeroU64Encoder())],
+    ['lockupEndTimestamp', getNullableU64Encoder()],
     ['mint', getAddressEncoder()],
   ]);
 }
@@ -80,7 +76,7 @@ export function getLockupDecoder(): Decoder<Lockup> {
     ['amount', getU64Decoder()],
     ['authority', getAddressDecoder()],
     ['lockupStartTimestamp', getU64Decoder()],
-    ['lockupEndTimestamp', getOptionDecoder(getNonZeroU64Decoder())],
+    ['lockupEndTimestamp', getNullableU64Decoder()],
     ['mint', getAddressDecoder()],
   ]);
 }

@@ -30,10 +30,27 @@ kinobi.update(
   })
 );
 
+// Add missing types from the IDL.
+kinobi.update(
+  k.bottomUpTransformerVisitor([
+    {
+      // Option<NonZeroU64> -> NullableU64
+      select: "[structFieldTypeNode]lockupEndTimestamp",
+      transform: (node) => {
+        k.assertIsNode(node, "structFieldTypeNode");
+        return {
+          ...node,
+          type: k.definedTypeLinkNode("nullableU64", "hooked"),
+        };
+      },
+    },
+  ])
+);
+
 // Render JavaScript.
 const jsClient = path.join(__dirname, "..", "clients", "js");
 kinobi.accept(
-  renderJavaScriptVisitor(path.join(jsClient, "src", "generated"), { 
+  renderJavaScriptVisitor(path.join(jsClient, "src", "generated"), {
     prettier: require(path.join(jsClient, ".prettierrc.json"))
   })
 );
