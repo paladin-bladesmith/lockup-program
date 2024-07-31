@@ -106,7 +106,6 @@ impl Default for LockupInstructionData {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct LockupInstructionArgs {
     pub amount: u64,
-    pub period_seconds: u64,
 }
 
 /// Instruction builder for `Lockup`.
@@ -133,7 +132,6 @@ pub struct LockupBuilder {
     token_mint: Option<solana_program::pubkey::Pubkey>,
     token_program: Option<solana_program::pubkey::Pubkey>,
     amount: Option<u64>,
-    period_seconds: Option<u64>,
     __remaining_accounts: Vec<solana_program::instruction::AccountMeta>,
 }
 
@@ -207,11 +205,6 @@ impl LockupBuilder {
         self.amount = Some(amount);
         self
     }
-    #[inline(always)]
-    pub fn period_seconds(&mut self, period_seconds: u64) -> &mut Self {
-        self.period_seconds = Some(period_seconds);
-        self
-    }
     /// Add an aditional account to the instruction.
     #[inline(always)]
     pub fn add_remaining_account(
@@ -250,10 +243,6 @@ impl LockupBuilder {
         };
         let args = LockupInstructionArgs {
             amount: self.amount.clone().expect("amount is not set"),
-            period_seconds: self
-                .period_seconds
-                .clone()
-                .expect("period_seconds is not set"),
         };
 
         accounts.instruction_with_remaining_accounts(args, &self.__remaining_accounts)
@@ -457,7 +446,6 @@ impl<'a, 'b> LockupCpiBuilder<'a, 'b> {
             token_mint: None,
             token_program: None,
             amount: None,
-            period_seconds: None,
             __remaining_accounts: Vec::new(),
         });
         Self { instruction }
@@ -539,11 +527,6 @@ impl<'a, 'b> LockupCpiBuilder<'a, 'b> {
         self.instruction.amount = Some(amount);
         self
     }
-    #[inline(always)]
-    pub fn period_seconds(&mut self, period_seconds: u64) -> &mut Self {
-        self.instruction.period_seconds = Some(period_seconds);
-        self
-    }
     /// Add an additional account to the instruction.
     #[inline(always)]
     pub fn add_remaining_account(
@@ -588,11 +571,6 @@ impl<'a, 'b> LockupCpiBuilder<'a, 'b> {
     ) -> solana_program::entrypoint::ProgramResult {
         let args = LockupInstructionArgs {
             amount: self.instruction.amount.clone().expect("amount is not set"),
-            period_seconds: self
-                .instruction
-                .period_seconds
-                .clone()
-                .expect("period_seconds is not set"),
         };
         let instruction = LockupCpi {
             __program: self.instruction.__program,
@@ -654,7 +632,6 @@ struct LockupCpiBuilderInstruction<'a, 'b> {
     token_mint: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     token_program: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     amount: Option<u64>,
-    period_seconds: Option<u64>,
     /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.
     __remaining_accounts: Vec<(
         &'b solana_program::account_info::AccountInfo<'a>,

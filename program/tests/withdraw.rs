@@ -6,8 +6,9 @@ use {
     paladin_lockup_program::{
         error::PaladinLockupError,
         state::{get_escrow_authority_address, Lockup},
+        LOCKUP_COOLDOWN_SECONDS,
     },
-    setup::{setup, setup_lockup, setup_mint, setup_token_account},
+    setup::{add_seconds_to_clock, setup, setup_lockup, setup_mint, setup_token_account},
     solana_program_test::*,
     solana_sdk::{
         account::{Account, AccountSharedData},
@@ -20,6 +21,7 @@ use {
     },
     spl_associated_token_account::get_associated_token_address_with_program_id,
     spl_token_2022::{extension::StateWithExtensions, state::Account as TokenAccount},
+    std::num::NonZeroU64,
 };
 
 #[tokio::test]
@@ -287,10 +289,11 @@ async fn fail_incorrect_escrow_authority_address() {
         &authority.pubkey(),
         10_000,
         clock.unix_timestamp as u64,
-        clock.unix_timestamp as u64, // Now (unlocked).
+        NonZeroU64::new(clock.unix_timestamp as u64), // Now (unlocked).
         &mint,
     )
     .await;
+    add_seconds_to_clock(&mut context, LOCKUP_COOLDOWN_SECONDS).await;
 
     let mut instruction = paladin_lockup_program::instruction::withdraw(
         &authority.pubkey(),
@@ -356,10 +359,11 @@ async fn fail_incorrect_escrow_token_account_address() {
         &authority.pubkey(),
         10_000,
         clock.unix_timestamp as u64,
-        clock.unix_timestamp as u64, // Now (unlocked).
+        NonZeroU64::new(clock.unix_timestamp as u64), // Now (unlocked).
         &mint,
     )
     .await;
+    add_seconds_to_clock(&mut context, LOCKUP_COOLDOWN_SECONDS).await;
 
     let mut instruction = paladin_lockup_program::instruction::withdraw(
         &authority.pubkey(),
@@ -425,10 +429,11 @@ async fn fail_lockup_still_active() {
         &authority.pubkey(),
         10_000,
         clock.unix_timestamp as u64,
-        (clock.unix_timestamp as u64).saturating_add(1_000), // NOT unlocked.
+        NonZeroU64::new(clock.unix_timestamp as u64),
         &mint,
     )
     .await;
+    // Don't advance clock, still locked
 
     let instruction = paladin_lockup_program::instruction::withdraw(
         &authority.pubkey(),
@@ -493,10 +498,11 @@ async fn fail_incorrect_lockup_authority() {
         &Pubkey::new_unique(), // Incorrect authority.
         10_000,
         clock.unix_timestamp as u64,
-        clock.unix_timestamp as u64, // Now (unlocked).
+        NonZeroU64::new(clock.unix_timestamp as u64),
         &mint,
     )
     .await;
+    add_seconds_to_clock(&mut context, LOCKUP_COOLDOWN_SECONDS).await;
 
     let instruction = paladin_lockup_program::instruction::withdraw(
         &authority.pubkey(),
@@ -558,10 +564,11 @@ async fn fail_incorrect_mint() {
         &authority.pubkey(),
         10_000,
         clock.unix_timestamp as u64,
-        clock.unix_timestamp as u64, // Now (unlocked).
-        &Pubkey::new_unique(),       // Incorrect mint.
+        NonZeroU64::new(clock.unix_timestamp as u64),
+        &Pubkey::new_unique(), // Incorrect mint.
     )
     .await;
+    add_seconds_to_clock(&mut context, LOCKUP_COOLDOWN_SECONDS).await;
 
     let instruction = paladin_lockup_program::instruction::withdraw(
         &authority.pubkey(),
@@ -637,10 +644,11 @@ async fn success() {
         &authority.pubkey(),
         lockup_amount,
         clock.unix_timestamp as u64,
-        clock.unix_timestamp as u64, // Now (unlocked).
+        NonZeroU64::new(clock.unix_timestamp as u64), // Now (unlocked).
         &mint,
     )
     .await;
+    add_seconds_to_clock(&mut context, LOCKUP_COOLDOWN_SECONDS).await;
     setup_token_account(
         &mut context,
         &token_account,

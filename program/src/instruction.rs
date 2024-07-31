@@ -15,7 +15,7 @@ use {
 #[rustfmt::skip]
 #[derive(Clone, Copy, Debug, PartialEq, ShankInstruction)]
 pub enum PaladinLockupInstruction {
-    /// Lock up tokens in a lockup account for a specified period of time.
+    /// Lock up tokens in a lockup account for an unspecified period of time.
     ///
     /// Expects an uninitialized lockup account with enough rent-exempt
     /// lamports to store lockup state, owned by the Paladin Lockup program.
@@ -74,8 +74,8 @@ pub enum PaladinLockupInstruction {
         name = "token_program",
         description = "Token program"
     )]
-    Lockup { amount: u64, period_seconds: u64 },
-    /// Unlock a token lockup, enabling the tokens for withdrawal.
+    Lockup { amount: u64 },
+    /// Unlock a token lockup, enabling the tokens for withdrawal after cooldown.
     ///
     /// Accounts expected by this instruction:
     ///
@@ -95,6 +95,8 @@ pub enum PaladinLockupInstruction {
     )]
     Unlock,
     /// Withdraw tokens from a lockup account.
+    ///
+    /// Lockup must be unlocked and have waited 30 minutes before withdrawal.
     ///
     /// Note this instruction accepts a destination account for both lamports
     /// (from the closed lockup account's rent lamports) and tokens.
@@ -163,14 +165,10 @@ impl PaladinLockupInstruction {
     /// into a byte buffer.
     pub fn pack(&self) -> Vec<u8> {
         match self {
-            Self::Lockup {
-                amount,
-                period_seconds,
-            } => {
-                let mut buf = Vec::with_capacity(1 + 8 + 8);
+            Self::Lockup { amount } => {
+                let mut buf = Vec::with_capacity(1 + 8);
                 buf.push(0);
                 buf.extend_from_slice(&amount.to_le_bytes());
-                buf.extend_from_slice(&period_seconds.to_le_bytes());
                 buf
             }
             Self::Unlock => vec![1],
@@ -182,13 +180,9 @@ impl PaladinLockupInstruction {
     /// [PaladinLockupInstruction](enum.PaladinLockupInstruction.html).
     pub fn unpack(input: &[u8]) -> Result<Self, ProgramError> {
         match input.split_first() {
-            Some((&0, rest)) if rest.len() == 16 => {
+            Some((&0, rest)) if rest.len() == 8 => {
                 let amount = u64::from_le_bytes(rest[..8].try_into().unwrap());
-                let period_seconds = u64::from_le_bytes(rest[8..].try_into().unwrap());
-                Ok(Self::Lockup {
-                    amount,
-                    period_seconds,
-                })
+                Ok(Self::Lockup { amount })
             }
             Some((&1, _)) => Ok(Self::Unlock),
             Some((&2, _)) => Ok(Self::Withdraw),
@@ -208,7 +202,6 @@ pub fn lockup(
     lockup_address: &Pubkey,
     mint_address: &Pubkey,
     amount: u64,
-    period_seconds: u64,
     token_program_id: &Pubkey,
 ) -> Instruction {
     let escrow_authority_address = get_escrow_authority_address(&crate::id());
@@ -227,11 +220,7 @@ pub fn lockup(
         AccountMeta::new_readonly(*mint_address, false),
         AccountMeta::new_readonly(*token_program_id, false),
     ];
-    let data = PaladinLockupInstruction::Lockup {
-        amount,
-        period_seconds,
-    }
-    .pack();
+    let data = PaladinLockupInstruction::Lockup { amount }.pack();
     Instruction::new_with_bytes(crate::id(), &data, accounts)
 }
 
@@ -290,10 +279,7 @@ mod tests {
 
     #[test]
     fn test_pack_unpack_lockup() {
-        test_pack_unpack(PaladinLockupInstruction::Lockup {
-            amount: 42,
-            period_seconds: 123,
-        });
+        test_pack_unpack(PaladinLockupInstruction::Lockup { amount: 42 });
     }
 
     #[test]

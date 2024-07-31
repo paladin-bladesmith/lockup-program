@@ -6,6 +6,7 @@ use {
     solana_program_test::*,
     solana_sdk::{
         account::{Account, AccountSharedData},
+        clock::Clock,
         program_option::COption,
         pubkey::Pubkey,
         system_program,
@@ -14,6 +15,7 @@ use {
         extension::{BaseStateWithExtensionsMut, ExtensionType, StateWithExtensionsMut},
         state::{Account as TokenAccount, AccountState, Mint},
     },
+    std::num::NonZeroU64,
 };
 
 pub fn setup() -> ProgramTest {
@@ -118,16 +120,11 @@ pub async fn setup_lockup(
     authority: &Pubkey,
     amount: u64,
     lockup_start_timestamp: u64,
-    lockup_end_timestamp: u64,
+    lockup_end_timestamp: Option<NonZeroU64>,
     mint_address: &Pubkey,
 ) {
-    let state = Lockup::new(
-        amount,
-        authority,
-        lockup_start_timestamp,
-        lockup_end_timestamp,
-        mint_address,
-    );
+    let mut state = Lockup::new(amount, authority, lockup_start_timestamp, mint_address);
+    state.lockup_end_timestamp = lockup_end_timestamp;
     let data = bytemuck::bytes_of(&state).to_vec();
 
     let rent = context.banks_client.get_rent().await.unwrap();
@@ -142,4 +139,14 @@ pub async fn setup_lockup(
             ..Account::default()
         }),
     );
+}
+
+pub async fn add_seconds_to_clock(context: &mut ProgramTestContext, seconds: u64) {
+    let mut clock = context
+        .banks_client
+        .get_sysvar::<Clock>()
+        .await
+        .expect("get_sysvar");
+    clock.unix_timestamp = clock.unix_timestamp.saturating_add(seconds as i64);
+    context.set_sysvar(&clock);
 }

@@ -21,7 +21,7 @@ use {
     spl_associated_token_account::get_associated_token_address_with_program_id,
     spl_discriminator::SplDiscriminate,
     spl_token_2022::{extension::StateWithExtensions, state::Account as TokenAccount},
-    test_case::test_matrix,
+    test_case::test_case,
 };
 
 #[tokio::test]
@@ -65,7 +65,6 @@ async fn fail_incorrect_lockup_owner() {
         &token_account,
         &lockup,
         &mint,
-        10_000,
         10_000,
         &spl_token_2022::id(),
     );
@@ -131,7 +130,6 @@ async fn fail_lockup_not_enough_space() {
         &token_account,
         &lockup,
         &mint,
-        10_000,
         10_000,
         &spl_token_2022::id(),
     );
@@ -206,7 +204,6 @@ async fn fail_lockup_already_initialized() {
         &lockup,
         &mint,
         10_000,
-        10_000,
         &spl_token_2022::id(),
     );
 
@@ -272,7 +269,6 @@ async fn fail_incorrect_escrow_authority_address() {
         &token_account,
         &lockup,
         &mint,
-        10_000,
         10_000,
         &spl_token_2022::id(),
     );
@@ -344,7 +340,6 @@ async fn fail_incorrect_escrow_token_account_address() {
         &lockup,
         &mint,
         10_000,
-        10_000,
         &spl_token_2022::id(),
     );
     instruction.accounts[5].pubkey = Pubkey::new_unique(); // Incorrect escrow token account address.
@@ -390,12 +385,11 @@ async fn check_token_account_balance(
     assert_eq!(actual_amount, check_amount);
 }
 
-#[test_matrix(
-    (10_000, 100_000, 1_000_000),
-    (30, 1_000, 5_000_000)
-)]
+#[test_case(1)]
+#[test_case(1_000_000_000)]
+#[test_case(1_000_000_000_000_000)]
 #[tokio::test]
-async fn success(amount: u64, period_seconds: u64) {
+async fn success(amount: u64) {
     let lockup_authority = Keypair::new();
     let mint = Pubkey::new_unique();
 
@@ -454,7 +448,6 @@ async fn success(amount: u64, period_seconds: u64) {
         &lockup,
         &mint,
         amount,
-        period_seconds,
         &spl_token_2022::id(),
     );
 
@@ -487,7 +480,6 @@ async fn success(amount: u64, period_seconds: u64) {
             amount,
             &lockup_authority.pubkey(),
             clock.unix_timestamp as u64,
-            (clock.unix_timestamp as u64).saturating_add(period_seconds),
             &mint,
         )
     );
