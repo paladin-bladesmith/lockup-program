@@ -5,6 +5,7 @@
 //! <https://github.com/kinobi-so/kinobi>
 
 use {
+    crate::generated::types::NonZeroU64,
     borsh::{BorshDeserialize, BorshSerialize},
     solana_program::pubkey::Pubkey,
 };
@@ -20,7 +21,7 @@ pub struct Lockup {
     )]
     pub authority: Pubkey,
     pub lockup_start_timestamp: u64,
-    pub lockup_end_timestamp: u64,
+    pub lockup_end_timestamp: Option<NonZeroU64>,
     #[cfg_attr(
         feature = "serde",
         serde(with = "serde_with::As::<serde_with::DisplayFromStr>")
@@ -29,8 +30,6 @@ pub struct Lockup {
 }
 
 impl Lockup {
-    pub const LEN: usize = 96;
-
     #[inline(always)]
     pub fn from_bytes(data: &[u8]) -> Result<Self, std::io::Error> {
         let mut data = data;

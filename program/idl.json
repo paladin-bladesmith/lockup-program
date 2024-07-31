@@ -74,10 +74,6 @@
         {
           "name": "amount",
           "type": "u64"
-        },
-        {
-          "name": "periodSeconds",
-          "type": "u64"
         }
       ],
       "discriminant": {
@@ -215,7 +211,11 @@
           },
           {
             "name": "lockupEndTimestamp",
-            "type": "u64"
+            "type": {
+              "option": {
+                "defined": "NonZeroU64"
+              }
+            }
           },
           {
             "name": "mint",

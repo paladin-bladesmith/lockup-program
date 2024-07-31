@@ -78,23 +78,15 @@ export type LockupInstruction<
     ]
   >;
 
-export type LockupInstructionData = {
-  discriminator: number;
-  amount: bigint;
-  periodSeconds: bigint;
-};
+export type LockupInstructionData = { discriminator: number; amount: bigint };
 
-export type LockupInstructionDataArgs = {
-  amount: number | bigint;
-  periodSeconds: number | bigint;
-};
+export type LockupInstructionDataArgs = { amount: number | bigint };
 
 export function getLockupInstructionDataEncoder(): Encoder<LockupInstructionDataArgs> {
   return transformEncoder(
     getStructEncoder([
       ['discriminator', getU8Encoder()],
       ['amount', getU64Encoder()],
-      ['periodSeconds', getU64Encoder()],
     ]),
     (value) => ({ ...value, discriminator: 0 })
   );
@@ -104,7 +96,6 @@ export function getLockupInstructionDataDecoder(): Decoder<LockupInstructionData
   return getStructDecoder([
     ['discriminator', getU8Decoder()],
     ['amount', getU64Decoder()],
-    ['periodSeconds', getU64Decoder()],
   ]);
 }
 
@@ -145,7 +136,6 @@ export type LockupInput<
   /** Token program */
   tokenProgram?: Address<TAccountTokenProgram>;
   amount: LockupInstructionDataArgs['amount'];
-  periodSeconds: LockupInstructionDataArgs['periodSeconds'];
 };
 
 export function getLockupInstruction<

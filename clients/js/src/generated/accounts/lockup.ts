@@ -17,6 +17,8 @@ import {
   getAddressEncoder,
   getArrayDecoder,
   getArrayEncoder,
+  getOptionDecoder,
+  getOptionEncoder,
   getStructDecoder,
   getStructEncoder,
   getU64Decoder,
@@ -33,14 +35,22 @@ import {
   type FetchAccountsConfig,
   type MaybeAccount,
   type MaybeEncodedAccount,
+  type Option,
+  type OptionOrNullable,
 } from '@solana/web3.js';
+import {
+  getNonZeroU64Decoder,
+  getNonZeroU64Encoder,
+  type NonZeroU64,
+  type NonZeroU64Args,
+} from '../types';
 
 export type Lockup = {
   discriminator: Array<number>;
   amount: bigint;
   authority: Address;
   lockupStartTimestamp: bigint;
-  lockupEndTimestamp: bigint;
+  lockupEndTimestamp: Option<NonZeroU64>;
   mint: Address;
 };
 
@@ -49,7 +59,7 @@ export type LockupArgs = {
   amount: number | bigint;
   authority: Address;
   lockupStartTimestamp: number | bigint;
-  lockupEndTimestamp: number | bigint;
+  lockupEndTimestamp: OptionOrNullable<NonZeroU64Args>;
   mint: Address;
 };
 
@@ -59,7 +69,7 @@ export function getLockupEncoder(): Encoder<LockupArgs> {
     ['amount', getU64Encoder()],
     ['authority', getAddressEncoder()],
     ['lockupStartTimestamp', getU64Encoder()],
-    ['lockupEndTimestamp', getU64Encoder()],
+    ['lockupEndTimestamp', getOptionEncoder(getNonZeroU64Encoder())],
     ['mint', getAddressEncoder()],
   ]);
 }
@@ -70,7 +80,7 @@ export function getLockupDecoder(): Decoder<Lockup> {
     ['amount', getU64Decoder()],
     ['authority', getAddressDecoder()],
     ['lockupStartTimestamp', getU64Decoder()],
-    ['lockupEndTimestamp', getU64Decoder()],
+    ['lockupEndTimestamp', getOptionDecoder(getNonZeroU64Decoder())],
     ['mint', getAddressDecoder()],
   ]);
 }
@@ -130,8 +140,4 @@ export async function fetchAllMaybeLockup(
 ): Promise<MaybeAccount<Lockup>[]> {
   const maybeAccounts = await fetchEncodedAccounts(rpc, addresses, config);
   return maybeAccounts.map((maybeAccount) => decodeLockup(maybeAccount));
-}
-
-export function getLockupSize(): number {
-  return 96;
 }
