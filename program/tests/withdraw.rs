@@ -8,7 +8,7 @@ use {
         state::{get_escrow_authority_address, Lockup},
         LOCKUP_COOLDOWN_SECONDS,
     },
-    setup::{set_clock, setup, setup_lockup, setup_mint, setup_token_account},
+    setup::{add_seconds_to_clock, setup, setup_lockup, setup_mint, setup_token_account},
     solana_program_test::*,
     solana_sdk::{
         account::{Account, AccountSharedData},
@@ -293,11 +293,7 @@ async fn fail_incorrect_escrow_authority_address() {
         &mint,
     )
     .await;
-    set_clock(
-        &mut context,
-        clock.unix_timestamp + LOCKUP_COOLDOWN_SECONDS as i64,
-    )
-    .await;
+    add_seconds_to_clock(&mut context, LOCKUP_COOLDOWN_SECONDS).await;
 
     let mut instruction = paladin_lockup_program::instruction::withdraw(
         &authority.pubkey(),
@@ -367,11 +363,7 @@ async fn fail_incorrect_escrow_token_account_address() {
         &mint,
     )
     .await;
-    set_clock(
-        &mut context,
-        clock.unix_timestamp + LOCKUP_COOLDOWN_SECONDS as i64,
-    )
-    .await;
+    add_seconds_to_clock(&mut context, LOCKUP_COOLDOWN_SECONDS).await;
 
     let mut instruction = paladin_lockup_program::instruction::withdraw(
         &authority.pubkey(),
@@ -510,11 +502,7 @@ async fn fail_incorrect_lockup_authority() {
         &mint,
     )
     .await;
-    set_clock(
-        &mut context,
-        clock.unix_timestamp + LOCKUP_COOLDOWN_SECONDS as i64,
-    )
-    .await;
+    add_seconds_to_clock(&mut context, LOCKUP_COOLDOWN_SECONDS).await;
 
     let instruction = paladin_lockup_program::instruction::withdraw(
         &authority.pubkey(),
@@ -580,11 +568,7 @@ async fn fail_incorrect_mint() {
         &Pubkey::new_unique(), // Incorrect mint.
     )
     .await;
-    set_clock(
-        &mut context,
-        clock.unix_timestamp + LOCKUP_COOLDOWN_SECONDS as i64,
-    )
-    .await;
+    add_seconds_to_clock(&mut context, LOCKUP_COOLDOWN_SECONDS).await;
 
     let instruction = paladin_lockup_program::instruction::withdraw(
         &authority.pubkey(),
@@ -664,11 +648,7 @@ async fn success() {
         &mint,
     )
     .await;
-    set_clock(
-        &mut context,
-        clock.unix_timestamp + LOCKUP_COOLDOWN_SECONDS as i64,
-    )
-    .await;
+    add_seconds_to_clock(&mut context, LOCKUP_COOLDOWN_SECONDS).await;
     setup_token_account(
         &mut context,
         &token_account,

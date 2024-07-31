@@ -141,12 +141,12 @@ pub async fn setup_lockup(
     );
 }
 
-pub async fn set_clock(context: &mut ProgramTestContext, timestamp: i64) {
+pub async fn add_seconds_to_clock(context: &mut ProgramTestContext, seconds: u64) {
     let mut clock = context
         .banks_client
         .get_sysvar::<Clock>()
         .await
         .expect("get_sysvar");
-    clock.unix_timestamp = timestamp;
+    clock.unix_timestamp = clock.unix_timestamp.saturating_add(seconds as i64);
     context.set_sysvar(&clock);
 }

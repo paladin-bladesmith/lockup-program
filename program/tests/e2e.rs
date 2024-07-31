@@ -10,7 +10,7 @@ use {
         state::{get_escrow_authority_address, Lockup},
         LOCKUP_COOLDOWN_SECONDS,
     },
-    setup::{setup, setup_mint, setup_token_account},
+    setup::{add_seconds_to_clock, setup, setup_mint, setup_token_account},
     solana_program_test::*,
     solana_sdk::{
         clock::Clock,
@@ -214,13 +214,7 @@ async fn test_e2e() {
     // Warp the clock 30 seconds.
     // Alice can't withdraw until the period ends.
     {
-        let mut clock = context
-            .banks_client
-            .get_sysvar::<Clock>()
-            .await
-            .expect("get_sysvar");
-        clock.unix_timestamp = clock.unix_timestamp.saturating_add(30);
-        context.set_sysvar(&clock);
+        add_seconds_to_clock(&mut context, 30).await;
 
         send_transaction_with_expected_err(
             &mut context,
@@ -257,15 +251,7 @@ async fn test_e2e() {
     // Warp the clock 30 more minutes.
     // Alice can now withdraw.
     {
-        let mut clock = context
-            .banks_client
-            .get_sysvar::<Clock>()
-            .await
-            .expect("get_sysvar");
-        clock.unix_timestamp = clock
-            .unix_timestamp
-            .saturating_add(LOCKUP_COOLDOWN_SECONDS as i64);
-        context.set_sysvar(&clock);
+        add_seconds_to_clock(&mut context, LOCKUP_COOLDOWN_SECONDS).await;
 
         send_transaction(
             &mut context,
