@@ -139,7 +139,7 @@ async fn fail_incorrect_lockup_authority() {
         &Pubkey::new_unique(), // Incorrect authority.
         10_000,
         10_000,
-        10_000,
+        None,
         &Pubkey::new_unique(),
     )
     .await;
@@ -175,7 +175,6 @@ async fn success() {
 
     let clock = context.banks_client.get_sysvar::<Clock>().await.unwrap();
     let start = clock.unix_timestamp as u64;
-    let end = clock.unix_timestamp.saturating_add(10_000) as u64;
 
     setup_lockup(
         &mut context,
@@ -183,7 +182,7 @@ async fn success() {
         &authority.pubkey(),
         10_000, // Amount (unused here).
         start,
-        end,
+        None,
         &Pubkey::new_unique(),
     )
     .await;
@@ -211,6 +210,5 @@ async fn success() {
         .unwrap()
         .unwrap();
     let state = bytemuck::from_bytes::<Lockup>(&lockup_account.data);
-    assert_eq!(state.lockup_end_timestamp, start); // Unlocked in current
-                                                   // timestamp.
+    assert_eq!(state.lockup_end_timestamp.unwrap().get(), start);
 }

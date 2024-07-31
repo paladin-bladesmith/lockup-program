@@ -3,6 +3,7 @@ use {
     shank::ShankAccount,
     solana_program::pubkey::Pubkey,
     spl_discriminator::SplDiscriminate,
+    std::num::NonZeroU64,
 };
 
 /// The seed prefix (`"escrow_authority"`) in bytes used to derive the address
@@ -41,7 +42,7 @@ pub struct Lockup {
     /// The start of the lockup period.
     pub lockup_start_timestamp: u64,
     /// The end of the lockup period.
-    pub lockup_end_timestamp: u64,
+    pub lockup_end_timestamp: Option<NonZeroU64>,
     /// The address of the mint this lockup supports.
     pub mint: Pubkey,
 }
@@ -52,7 +53,6 @@ impl Lockup {
         amount: u64,
         authority: &Pubkey,
         lockup_start_timestamp: u64,
-        lockup_end_timestamp: u64,
         mint: &Pubkey,
     ) -> Self {
         Self {
@@ -60,7 +60,7 @@ impl Lockup {
             amount,
             authority: *authority,
             lockup_start_timestamp,
-            lockup_end_timestamp,
+            lockup_end_timestamp: None,
             mint: *mint,
         }
     }

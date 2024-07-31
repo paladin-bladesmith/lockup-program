@@ -8,6 +8,7 @@ use {
             collect_escrow_authority_signer_seeds, get_escrow_authority_address,
             get_escrow_authority_address_and_bump_seed, Lockup,
         },
+        LOCKUP_COOLDOWN_SECONDS,
     },
     solana_program::{
         account_info::{next_account_info, AccountInfo},
@@ -22,17 +23,13 @@ use {
     spl_associated_token_account::get_associated_token_address_with_program_id,
     spl_discriminator::{ArrayDiscriminator, SplDiscriminate},
     spl_token_2022::{extension::StateWithExtensions, state::Mint},
+    std::num::NonZeroU64,
 };
 
 /// Processes a
 /// [Lockup](enum.PaladinLockupInstruction.html)
 /// instruction.
-fn process_lockup(
-    program_id: &Pubkey,
-    accounts: &[AccountInfo],
-    amount: u64,
-    period_seconds: u64,
-) -> ProgramResult {
+fn process_lockup(program_id: &Pubkey, accounts: &[AccountInfo], amount: u64) -> ProgramResult {
     let accounts_iter = &mut accounts.iter();
 
     let lockup_authority_info = next_account_info(accounts_iter)?;
@@ -83,9 +80,6 @@ fn process_lockup(
     // lockup start and end timestamp, using the provided period.
     let clock = <Clock as Sysvar>::get()?;
     let lockup_start_timestamp = clock.unix_timestamp as u64;
-    let lockup_end_timestamp = lockup_start_timestamp
-        .checked_add(period_seconds)
-        .ok_or(ProgramError::ArithmeticOverflow)?;
 
     // Write the data.
     let mut data = lockup_info.try_borrow_mut_data()?;
@@ -94,7 +88,6 @@ fn process_lockup(
             amount,
             lockup_authority_info.key,
             lockup_start_timestamp,
-            lockup_end_timestamp,
             mint_info.key,
         );
 
@@ -157,13 +150,10 @@ fn process_unlock(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResul
         return Err(ProgramError::IncorrectAuthority);
     }
 
-    // Get the timestamp from the clock sysvar, and use it to override the end
+    // Get the timestamp from the clock sysvar, and use it to set the end
     // timestamp of the lockup, effectively unlocking the funds.
     let clock = <Clock as Sysvar>::get()?;
-    let timestamp = clock.unix_timestamp as u64;
-    if state.lockup_end_timestamp > timestamp {
-        state.lockup_end_timestamp = timestamp;
-    }
+    state.lockup_end_timestamp = NonZeroU64::new(clock.unix_timestamp as u64);
 
     Ok(())
 }
@@ -240,10 +230,15 @@ fn process_withdraw(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramRes
         // Ensure the lockup has ended.
         let clock = <Clock as Sysvar>::get()?;
         let timestamp = clock.unix_timestamp as u64;
-        if state.lockup_end_timestamp > timestamp {
+        let unlock_timestamp = state
+            .lockup_end_timestamp
+            .ok_or(PaladinLockupError::LockupActive)?
+            .get()
+            .saturating_add(LOCKUP_COOLDOWN_SECONDS);
+        if unlock_timestamp > timestamp {
             msg!(
                 "Lockup has not ended yet. {} seconds remaining.",
-                state.lockup_end_timestamp.saturating_sub(timestamp)
+                unlock_timestamp.saturating_sub(timestamp)
             );
             return Err(PaladinLockupError::LockupActive.into());
         }
@@ -294,12 +289,9 @@ fn process_withdraw(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramRes
 pub fn process(program_id: &Pubkey, accounts: &[AccountInfo], input: &[u8]) -> ProgramResult {
     let instruction = PaladinLockupInstruction::unpack(input)?;
     match instruction {
-        PaladinLockupInstruction::Lockup {
-            amount,
-            period_seconds,
-        } => {
+        PaladinLockupInstruction::Lockup { amount } => {
             msg!("Instruction: Lockup");
-            process_lockup(program_id, accounts, amount, period_seconds)
+            process_lockup(program_id, accounts, amount)
         }
         PaladinLockupInstruction::Unlock => {
             msg!("Instruction: Unlock");
