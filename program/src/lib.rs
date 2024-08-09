@@ -13,6 +13,6 @@ pub mod instruction;
 pub mod processor;
 pub mod state;
 
-solana_program::declare_id!("Dbf7u6x15DhjMrBMunY3XoRWdByrCCt2dbyoPrCXN6SQ");
+solana_program::declare_id!("PLockup111111111111111111111111111111111111");
 
 pub const LOCKUP_COOLDOWN_SECONDS: u64 = 30 * 60; // 30 minutes

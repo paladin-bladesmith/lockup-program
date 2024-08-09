@@ -19,7 +19,7 @@ import {
 } from '../instructions';
 
 export const PALADIN_LOCKUP_PROGRAM_ADDRESS =
-  'Dbf7u6x15DhjMrBMunY3XoRWdByrCCt2dbyoPrCXN6SQ' as Address<'Dbf7u6x15DhjMrBMunY3XoRWdByrCCt2dbyoPrCXN6SQ'>;
+  'PLockup111111111111111111111111111111111111' as Address<'PLockup111111111111111111111111111111111111'>;
 
 export enum PaladinLockupAccount {
   Lockup,
@@ -50,7 +50,7 @@ export function identifyPaladinLockupInstruction(
 }
 
 export type ParsedPaladinLockupInstruction<
-  TProgram extends string = 'Dbf7u6x15DhjMrBMunY3XoRWdByrCCt2dbyoPrCXN6SQ',
+  TProgram extends string = 'PLockup111111111111111111111111111111111111',
 > =
   | ({
       instructionType: PaladinLockupInstruction.Lockup;
