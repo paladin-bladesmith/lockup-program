@@ -23,4 +23,7 @@ pub enum PaladinLockupError {
     /// Lockup is still active.
     #[error("Lockup is still active.")]
     LockupActive,
+    /// Lockup already unlocked.
+    #[error("Lockup already unlocked.")]
+    LockupAlreadyUnlocked,
 }
