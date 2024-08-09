@@ -1,5 +1,5 @@
 {
-  "version": "0.1.0",
+  "version": "0.0.1",
   "name": "paladin_lockup_program",
   "instructions": [
     {
@@ -225,9 +225,31 @@
       }
     }
   ],
+  "errors": [
+    {
+      "code": 0,
+      "name": "IncorrectMint",
+      "msg": "Incorrect mint."
+    },
+    {
+      "code": 1,
+      "name": "IncorrectEscrowAuthorityAddress",
+      "msg": "Incorrect escrow authority address."
+    },
+    {
+      "code": 2,
+      "name": "IncorrectEscrowTokenAccount",
+      "msg": "Incorrect escrow token account."
+    },
+    {
+      "code": 3,
+      "name": "LockupActive",
+      "msg": "Lockup is still active."
+    }
+  ],
   "metadata": {
     "origin": "shank",
-    "address": "Dbf7u6x15DhjMrBMunY3XoRWdByrCCt2dbyoPrCXN6SQ",
+    "address": "PLockup111111111111111111111111111111111111",
     "binaryVersion": "0.4.2",
     "libVersion": "0.4.2"
   }

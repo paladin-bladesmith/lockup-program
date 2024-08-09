@@ -1,8 +1,8 @@
 [package]
 name = "paladin-lockup-program"
-version = "0.1.0"
+version = "0.0.1"
 description = "Paladin Lockup Program"
-readme = "./README.md"
+readme = "../README.md"
 edition = "2021"
 
 [lib]
@@ -10,12 +10,14 @@ crate-type = ["cdylib", "lib"]
 
 [dependencies]
 bytemuck = { version = "1.16.1", features = ["derive"] }
+num-derive = "0.3"
+num-traits = "0.2"
 shank = "0.4.2"
 solana-program = "2.0.2"
 spl-associated-token-account = { version = "4.0.0", features = ["no-entrypoint"] }
 spl-discriminator = "0.3.0"
-spl-program-error = "0.5.0"
 spl-token-2022 = { version = "4.0.0", features = ["no-entrypoint"] }
+thiserror = "1.0"
 
 [dev-dependencies]
 solana-program-test = "2.0.2"
@@ -27,4 +29,4 @@ bpf-entrypoint = []
 test-sbf = []
 
 [package.metadata.solana]
-program-id = "Dbf7u6x15DhjMrBMunY3XoRWdByrCCt2dbyoPrCXN6SQ"
+program-id = "PLockup111111111111111111111111111111111111"

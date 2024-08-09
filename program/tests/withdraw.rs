@@ -753,4 +753,12 @@ async fn success() {
         escrow_token_account_end_balance,
         escrow_token_account_start_balance.saturating_sub(lockup_amount)
     );
+
+    // Assert the lockup account was closed.
+    assert!(context
+        .banks_client
+        .get_account(lockup)
+        .await
+        .unwrap()
+        .is_none());
 }

@@ -1,29 +1,50 @@
 //! Program error types.
 
-use spl_program_error::*;
+use {
+    num_derive::FromPrimitive,
+    solana_program::{
+        decode_error::DecodeError,
+        msg,
+        program_error::{PrintProgramError, ProgramError},
+    },
+    thiserror::Error,
+};
 
 /// Errors that can be returned by the Paladin Lockup program.
-#[spl_program_error]
+// Note: Shank does not export the type when we use `spl_program_error`.
+#[derive(Error, Clone, Debug, Eq, PartialEq, FromPrimitive)]
 pub enum PaladinLockupError {
     /// Incorrect mint.
     #[error("Incorrect mint.")]
     IncorrectMint,
-    /// Incorrect token account.
-    #[error("Incorrect token account.")]
-    IncorrectTokenAccount,
     /// Incorrect escrow authority address.
     #[error("Incorrect escrow authority address.")]
     IncorrectEscrowAuthorityAddress,
     /// Incorrect escrow token account.
     #[error("Incorrect escrow token account.")]
     IncorrectEscrowTokenAccount,
-    /// Token account mint mismatch.
-    #[error("Token account mint mismatch.")]
-    TokenAccountMintMismatch,
     /// Lockup is still active.
     #[error("Lockup is still active.")]
     LockupActive,
     /// Lockup already unlocked.
     #[error("Lockup already unlocked.")]
     LockupAlreadyUnlocked,
+}
+
+impl PrintProgramError for PaladinLockupError {
+    fn print<E>(&self) {
+        msg!(&self.to_string());
+    }
+}
+
+impl From<PaladinLockupError> for ProgramError {
+    fn from(e: PaladinLockupError) -> Self {
+        ProgramError::Custom(e as u32)
+    }
+}
+
+impl<T> DecodeError<T> for PaladinLockupError {
+    fn type_of() -> &'static str {
+        "PaladinLockupError"
+    }
 }

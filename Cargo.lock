@@ -2398,18 +2398,20 @@ checksum = "e2355d85b9a3786f481747ced0e0ff2ba35213a1f9bd406ed906554d7af805a1"
 
 [[package]]
 name = "paladin-lockup-program"
-version = "0.1.0"
+version = "0.0.1"
 dependencies = [
  "bytemuck",
+ "num-derive 0.3.3",
+ "num-traits",
  "shank",
  "solana-program",
  "solana-program-test",
  "solana-sdk",
  "spl-associated-token-account",
  "spl-discriminator",
- "spl-program-error",
  "spl-token-2022",
  "test-case",
+ "thiserror",
 ]
 
 [[package]]

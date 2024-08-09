@@ -61,7 +61,7 @@ impl anchor_lang::AccountSerialize for Lockup {}
 #[cfg(feature = "anchor")]
 impl anchor_lang::Owner for Lockup {
     fn owner() -> Pubkey {
-        crate::PALADIN_LOCKUP_PROGRAM_ID
+        crate::PALADIN_LOCKUP_ID
     }
 }
 
