@@ -1,6 +1,6 @@
 [package]
 name = "paladin-lockup-program"
-version = "0.1.0"
+version = "0.0.1"
 description = "Paladin Lockup Program"
 readme = "../README.md"
 edition = "2021"

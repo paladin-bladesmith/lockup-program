@@ -77,7 +77,7 @@ fn process_lockup(program_id: &Pubkey, accounts: &[AccountInfo], amount: u64) ->
     }
 
     // Get the timestamp from the clock sysvar, and use it to determine the
-    // lockup start and end timestamp, using the provided period.
+    // lockup start timestamp.
     let clock = <Clock as Sysvar>::get()?;
     let lockup_start_timestamp = clock.unix_timestamp as u64;
 

@@ -8,18 +8,12 @@ pub enum PaladinLockupError {
     /// Incorrect mint.
     #[error("Incorrect mint.")]
     IncorrectMint,
-    /// Incorrect token account.
-    #[error("Incorrect token account.")]
-    IncorrectTokenAccount,
     /// Incorrect escrow authority address.
     #[error("Incorrect escrow authority address.")]
     IncorrectEscrowAuthorityAddress,
     /// Incorrect escrow token account.
     #[error("Incorrect escrow token account.")]
     IncorrectEscrowTokenAccount,
-    /// Token account mint mismatch.
-    #[error("Token account mint mismatch.")]
-    TokenAccountMintMismatch,
     /// Lockup is still active.
     #[error("Lockup is still active.")]
     LockupActive,
