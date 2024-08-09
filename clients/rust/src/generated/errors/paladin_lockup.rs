@@ -20,6 +20,9 @@ pub enum PaladinLockupError {
     /// 3 - Lockup is still active.
     #[error("Lockup is still active.")]
     LockupActive = 0x3,
+    /// 4 - Lockup already unlocked.
+    #[error("Lockup already unlocked.")]
+    LockupAlreadyUnlocked = 0x4,
 }
 
 impl solana_program::program_error::PrintProgramError for PaladinLockupError {

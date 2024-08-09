@@ -22,12 +22,15 @@ export const PALADIN_LOCKUP_ERROR__INCORRECT_ESCROW_AUTHORITY_ADDRESS = 0x1; // 
 export const PALADIN_LOCKUP_ERROR__INCORRECT_ESCROW_TOKEN_ACCOUNT = 0x2; // 2
 /** LockupActive: Lockup is still active. */
 export const PALADIN_LOCKUP_ERROR__LOCKUP_ACTIVE = 0x3; // 3
+/** LockupAlreadyUnlocked: Lockup already unlocked. */
+export const PALADIN_LOCKUP_ERROR__LOCKUP_ALREADY_UNLOCKED = 0x4; // 4
 
 export type PaladinLockupError =
   | typeof PALADIN_LOCKUP_ERROR__INCORRECT_ESCROW_AUTHORITY_ADDRESS
   | typeof PALADIN_LOCKUP_ERROR__INCORRECT_ESCROW_TOKEN_ACCOUNT
   | typeof PALADIN_LOCKUP_ERROR__INCORRECT_MINT
-  | typeof PALADIN_LOCKUP_ERROR__LOCKUP_ACTIVE;
+  | typeof PALADIN_LOCKUP_ERROR__LOCKUP_ACTIVE
+  | typeof PALADIN_LOCKUP_ERROR__LOCKUP_ALREADY_UNLOCKED;
 
 let paladinLockupErrorMessages: Record<PaladinLockupError, string> | undefined;
 if (process.env.NODE_ENV !== 'production') {
@@ -36,6 +39,7 @@ if (process.env.NODE_ENV !== 'production') {
     [PALADIN_LOCKUP_ERROR__INCORRECT_ESCROW_TOKEN_ACCOUNT]: `Incorrect escrow token account.`,
     [PALADIN_LOCKUP_ERROR__INCORRECT_MINT]: `Incorrect mint.`,
     [PALADIN_LOCKUP_ERROR__LOCKUP_ACTIVE]: `Lockup is still active.`,
+    [PALADIN_LOCKUP_ERROR__LOCKUP_ALREADY_UNLOCKED]: `Lockup already unlocked.`,
   };
 }
 

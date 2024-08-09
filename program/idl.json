@@ -245,6 +245,11 @@
       "code": 3,
       "name": "LockupActive",
       "msg": "Lockup is still active."
+    },
+    {
+      "code": 4,
+      "name": "LockupAlreadyUnlocked",
+      "msg": "Lockup already unlocked."
     }
   ],
   "metadata": {
