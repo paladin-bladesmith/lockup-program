@@ -3,7 +3,7 @@
 mod setup;
 
 use {
-    paladin_lockup_program::state::Lockup,
+    paladin_lockup_program::{error::PaladinLockupError, state::Lockup},
     setup::{setup, setup_lockup},
     solana_program_test::*,
     solana_sdk::{
@@ -15,6 +15,7 @@ use {
         signer::Signer,
         transaction::{Transaction, TransactionError},
     },
+    std::num::NonZeroU64,
 };
 
 #[tokio::test]
@@ -163,6 +164,53 @@ async fn fail_incorrect_lockup_authority() {
     assert_eq!(
         err,
         TransactionError::InstructionError(0, InstructionError::IncorrectAuthority)
+    );
+}
+
+#[tokio::test]
+async fn fail_lockup_already_unlocked() {
+    let authority = Keypair::new();
+    let lockup = Pubkey::new_unique();
+
+    let mut context = setup().start_with_context().await;
+
+    // Actual timestamp doesn't matter for this test.
+    let start = 100_000u64;
+    let end = 200_000u64;
+
+    setup_lockup(
+        &mut context,
+        &lockup,
+        &authority.pubkey(),
+        10_000, // Amount (unused here).
+        start,
+        NonZeroU64::new(end), // Already unlocked.
+        &Pubkey::new_unique(),
+    )
+    .await;
+
+    let instruction = paladin_lockup_program::instruction::unlock(&authority.pubkey(), &lockup);
+
+    let transaction = Transaction::new_signed_with_payer(
+        &[instruction],
+        Some(&context.payer.pubkey()),
+        &[&context.payer, &authority],
+        context.last_blockhash,
+    );
+
+    let err = context
+        .banks_client
+        .process_transaction(transaction)
+        .await
+        .unwrap_err()
+        .unwrap();
+
+    assert_eq!(
+        err,
+        TransactionError::InstructionError(
+            0,
+            InstructionError::Custom(PaladinLockupError::LockupAlreadyUnlocked as u32)
+        )
     );
 }
 

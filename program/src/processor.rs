@@ -150,6 +150,11 @@ fn process_unlock(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResul
         return Err(ProgramError::IncorrectAuthority);
     }
 
+    // Ensure the lockup account has not already been unlocked.
+    if state.lockup_end_timestamp.is_some() {
+        return Err(PaladinLockupError::LockupAlreadyUnlocked.into());
+    }
+
     // Get the timestamp from the clock sysvar, and use it to set the end
     // timestamp of the lockup, effectively unlocking the funds.
     let clock = <Clock as Sysvar>::get()?;
