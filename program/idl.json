@@ -225,6 +225,28 @@
       }
     }
   ],
+  "errors": [
+    {
+      "code": 0,
+      "name": "IncorrectMint",
+      "msg": "Incorrect mint."
+    },
+    {
+      "code": 1,
+      "name": "IncorrectEscrowAuthorityAddress",
+      "msg": "Incorrect escrow authority address."
+    },
+    {
+      "code": 2,
+      "name": "IncorrectEscrowTokenAccount",
+      "msg": "Incorrect escrow token account."
+    },
+    {
+      "code": 3,
+      "name": "LockupActive",
+      "msg": "Lockup is still active."
+    }
+  ],
   "metadata": {
     "origin": "shank",
     "address": "Dbf7u6x15DhjMrBMunY3XoRWdByrCCt2dbyoPrCXN6SQ",
