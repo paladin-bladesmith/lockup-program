@@ -26,11 +26,11 @@ import {
   type TransactionSigner,
   type WritableAccount,
 } from '@solana/web3.js';
-import { PALADIN_LOCKUP_PROGRAM_PROGRAM_ADDRESS } from '../programs';
+import { PALADIN_LOCKUP_PROGRAM_ADDRESS } from '../programs';
 import { getAccountMetaFactory, type ResolvedAccount } from '../shared';
 
 export type UnlockInstruction<
-  TProgram extends string = typeof PALADIN_LOCKUP_PROGRAM_PROGRAM_ADDRESS,
+  TProgram extends string = typeof PALADIN_LOCKUP_PROGRAM_ADDRESS,
   TAccountLockupAuthority extends string | IAccountMeta<string> = string,
   TAccountLockupAccount extends string | IAccountMeta<string> = string,
   TRemainingAccounts extends readonly IAccountMeta<string>[] = [],
@@ -90,12 +90,12 @@ export function getUnlockInstruction<
 >(
   input: UnlockInput<TAccountLockupAuthority, TAccountLockupAccount>
 ): UnlockInstruction<
-  typeof PALADIN_LOCKUP_PROGRAM_PROGRAM_ADDRESS,
+  typeof PALADIN_LOCKUP_PROGRAM_ADDRESS,
   TAccountLockupAuthority,
   TAccountLockupAccount
 > {
   // Program address.
-  const programAddress = PALADIN_LOCKUP_PROGRAM_PROGRAM_ADDRESS;
+  const programAddress = PALADIN_LOCKUP_PROGRAM_ADDRESS;
 
   // Original accounts.
   const originalAccounts = {
@@ -119,7 +119,7 @@ export function getUnlockInstruction<
     programAddress,
     data: getUnlockInstructionDataEncoder().encode({}),
   } as UnlockInstruction<
-    typeof PALADIN_LOCKUP_PROGRAM_PROGRAM_ADDRESS,
+    typeof PALADIN_LOCKUP_PROGRAM_ADDRESS,
     TAccountLockupAuthority,
     TAccountLockupAccount
   >;
@@ -128,7 +128,7 @@ export function getUnlockInstruction<
 }
 
 export type ParsedUnlockInstruction<
-  TProgram extends string = typeof PALADIN_LOCKUP_PROGRAM_PROGRAM_ADDRESS,
+  TProgram extends string = typeof PALADIN_LOCKUP_PROGRAM_ADDRESS,
   TAccountMetas extends readonly IAccountMeta[] = readonly IAccountMeta[],
 > = {
   programAddress: Address<TProgram>;

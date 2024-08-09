@@ -72,7 +72,7 @@ impl Withdraw {
         let data = WithdrawInstructionData::new().try_to_vec().unwrap();
 
         solana_program::instruction::Instruction {
-            program_id: crate::PALADIN_LOCKUP_PROGRAM_ID,
+            program_id: crate::PALADIN_LOCKUP_ID,
             accounts,
             data,
         }
@@ -368,7 +368,7 @@ impl<'a, 'b> WithdrawCpi<'a, 'b> {
         let data = WithdrawInstructionData::new().try_to_vec().unwrap();
 
         let instruction = solana_program::instruction::Instruction {
-            program_id: crate::PALADIN_LOCKUP_PROGRAM_ID,
+            program_id: crate::PALADIN_LOCKUP_ID,
             accounts,
             data,
         };

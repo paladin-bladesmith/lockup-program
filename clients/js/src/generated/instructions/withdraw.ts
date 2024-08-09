@@ -27,11 +27,11 @@ import {
   type TransactionSigner,
   type WritableAccount,
 } from '@solana/web3.js';
-import { PALADIN_LOCKUP_PROGRAM_PROGRAM_ADDRESS } from '../programs';
+import { PALADIN_LOCKUP_PROGRAM_ADDRESS } from '../programs';
 import { getAccountMetaFactory, type ResolvedAccount } from '../shared';
 
 export type WithdrawInstruction<
-  TProgram extends string = typeof PALADIN_LOCKUP_PROGRAM_PROGRAM_ADDRESS,
+  TProgram extends string = typeof PALADIN_LOCKUP_PROGRAM_ADDRESS,
   TAccountLockupAuthority extends string | IAccountMeta<string> = string,
   TAccountLamportDestination extends string | IAccountMeta<string> = string,
   TAccountTokenDestination extends string | IAccountMeta<string> = string,
@@ -150,7 +150,7 @@ export function getWithdrawInstruction<
     TAccountTokenProgram
   >
 ): WithdrawInstruction<
-  typeof PALADIN_LOCKUP_PROGRAM_PROGRAM_ADDRESS,
+  typeof PALADIN_LOCKUP_PROGRAM_ADDRESS,
   TAccountLockupAuthority,
   TAccountLamportDestination,
   TAccountTokenDestination,
@@ -161,7 +161,7 @@ export function getWithdrawInstruction<
   TAccountTokenProgram
 > {
   // Program address.
-  const programAddress = PALADIN_LOCKUP_PROGRAM_PROGRAM_ADDRESS;
+  const programAddress = PALADIN_LOCKUP_PROGRAM_ADDRESS;
 
   // Original accounts.
   const originalAccounts = {
@@ -215,7 +215,7 @@ export function getWithdrawInstruction<
     programAddress,
     data: getWithdrawInstructionDataEncoder().encode({}),
   } as WithdrawInstruction<
-    typeof PALADIN_LOCKUP_PROGRAM_PROGRAM_ADDRESS,
+    typeof PALADIN_LOCKUP_PROGRAM_ADDRESS,
     TAccountLockupAuthority,
     TAccountLamportDestination,
     TAccountTokenDestination,
@@ -230,7 +230,7 @@ export function getWithdrawInstruction<
 }
 
 export type ParsedWithdrawInstruction<
-  TProgram extends string = typeof PALADIN_LOCKUP_PROGRAM_PROGRAM_ADDRESS,
+  TProgram extends string = typeof PALADIN_LOCKUP_PROGRAM_ADDRESS,
   TAccountMetas extends readonly IAccountMeta[] = readonly IAccountMeta[],
 > = {
   programAddress: Address<TProgram>;

@@ -18,46 +18,46 @@ import {
   type ParsedWithdrawInstruction,
 } from '../instructions';
 
-export const PALADIN_LOCKUP_PROGRAM_PROGRAM_ADDRESS =
+export const PALADIN_LOCKUP_PROGRAM_ADDRESS =
   'Dbf7u6x15DhjMrBMunY3XoRWdByrCCt2dbyoPrCXN6SQ' as Address<'Dbf7u6x15DhjMrBMunY3XoRWdByrCCt2dbyoPrCXN6SQ'>;
 
-export enum PaladinLockupProgramAccount {
+export enum PaladinLockupAccount {
   Lockup,
 }
 
-export enum PaladinLockupProgramInstruction {
+export enum PaladinLockupInstruction {
   Lockup,
   Unlock,
   Withdraw,
 }
 
-export function identifyPaladinLockupProgramInstruction(
+export function identifyPaladinLockupInstruction(
   instruction: { data: ReadonlyUint8Array } | ReadonlyUint8Array
-): PaladinLockupProgramInstruction {
+): PaladinLockupInstruction {
   const data = 'data' in instruction ? instruction.data : instruction;
   if (containsBytes(data, getU8Encoder().encode(0), 0)) {
-    return PaladinLockupProgramInstruction.Lockup;
+    return PaladinLockupInstruction.Lockup;
   }
   if (containsBytes(data, getU8Encoder().encode(1), 0)) {
-    return PaladinLockupProgramInstruction.Unlock;
+    return PaladinLockupInstruction.Unlock;
   }
   if (containsBytes(data, getU8Encoder().encode(2), 0)) {
-    return PaladinLockupProgramInstruction.Withdraw;
+    return PaladinLockupInstruction.Withdraw;
   }
   throw new Error(
-    'The provided instruction could not be identified as a paladinLockupProgram instruction.'
+    'The provided instruction could not be identified as a paladinLockup instruction.'
   );
 }
 
-export type ParsedPaladinLockupProgramInstruction<
+export type ParsedPaladinLockupInstruction<
   TProgram extends string = 'Dbf7u6x15DhjMrBMunY3XoRWdByrCCt2dbyoPrCXN6SQ',
 > =
   | ({
-      instructionType: PaladinLockupProgramInstruction.Lockup;
+      instructionType: PaladinLockupInstruction.Lockup;
     } & ParsedLockupInstruction<TProgram>)
   | ({
-      instructionType: PaladinLockupProgramInstruction.Unlock;
+      instructionType: PaladinLockupInstruction.Unlock;
     } & ParsedUnlockInstruction<TProgram>)
   | ({
-      instructionType: PaladinLockupProgramInstruction.Withdraw;
+      instructionType: PaladinLockupInstruction.Withdraw;
     } & ParsedWithdrawInstruction<TProgram>);

@@ -78,7 +78,7 @@ impl Lockup {
         data.append(&mut args);
 
         solana_program::instruction::Instruction {
-            program_id: crate::PALADIN_LOCKUP_PROGRAM_ID,
+            program_id: crate::PALADIN_LOCKUP_ID,
             accounts,
             data,
         }
@@ -390,7 +390,7 @@ impl<'a, 'b> LockupCpi<'a, 'b> {
         data.append(&mut args);
 
         let instruction = solana_program::instruction::Instruction {
-            program_id: crate::PALADIN_LOCKUP_PROGRAM_ID,
+            program_id: crate::PALADIN_LOCKUP_ID,
             accounts,
             data,
         };

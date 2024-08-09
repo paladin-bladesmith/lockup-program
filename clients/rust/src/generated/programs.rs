@@ -6,6 +6,5 @@
 
 use solana_program::{pubkey, pubkey::Pubkey};
 
-/// `paladin_lockup_program` program ID.
-pub const PALADIN_LOCKUP_PROGRAM_ID: Pubkey =
-    pubkey!("Dbf7u6x15DhjMrBMunY3XoRWdByrCCt2dbyoPrCXN6SQ");
+/// `paladin_lockup` program ID.
+pub const PALADIN_LOCKUP_ID: Pubkey = pubkey!("Dbf7u6x15DhjMrBMunY3XoRWdByrCCt2dbyoPrCXN6SQ");
