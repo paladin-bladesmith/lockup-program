@@ -45,6 +45,8 @@ pub struct Lockup {
     pub lockup_end_timestamp: Option<NonZeroU64>,
     /// The address of the mint this lockup supports.
     pub mint: Pubkey,
+    /// Address of any additional metadata (stored in another account).
+    pub metadata: Pubkey,
 }
 
 impl Lockup {
@@ -62,6 +64,7 @@ impl Lockup {
             lockup_start_timestamp,
             lockup_end_timestamp: None,
             mint: *mint,
+            metadata: Pubkey::default(),
         }
     }
 }

@@ -27,6 +27,11 @@ pub struct Lockup {
         serde(with = "serde_with::As::<serde_with::DisplayFromStr>")
     )]
     pub mint: Pubkey,
+    #[cfg_attr(
+        feature = "serde",
+        serde(with = "serde_with::As::<serde_with::DisplayFromStr>")
+    )]
+    pub metadata: Pubkey,
 }
 
 impl Lockup {
