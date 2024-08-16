@@ -48,6 +48,7 @@ export type Lockup = {
   lockupStartTimestamp: bigint;
   lockupEndTimestamp: NullableU64;
   mint: Address;
+  metadata: Address;
 };
 
 export type LockupArgs = {
@@ -57,6 +58,7 @@ export type LockupArgs = {
   lockupStartTimestamp: number | bigint;
   lockupEndTimestamp: NullableU64Args;
   mint: Address;
+  metadata: Address;
 };
 
 export function getLockupEncoder(): Encoder<LockupArgs> {
@@ -67,6 +69,7 @@ export function getLockupEncoder(): Encoder<LockupArgs> {
     ['lockupStartTimestamp', getU64Encoder()],
     ['lockupEndTimestamp', getNullableU64Encoder()],
     ['mint', getAddressEncoder()],
+    ['metadata', getAddressEncoder()],
   ]);
 }
 
@@ -78,6 +81,7 @@ export function getLockupDecoder(): Decoder<Lockup> {
     ['lockupStartTimestamp', getU64Decoder()],
     ['lockupEndTimestamp', getNullableU64Decoder()],
     ['mint', getAddressDecoder()],
+    ['metadata', getAddressDecoder()],
   ]);
 }
 

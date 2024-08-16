@@ -220,6 +220,10 @@
           {
             "name": "mint",
             "type": "publicKey"
+          },
+          {
+            "name": "metadata",
+            "type": "publicKey"
           }
         ]
       }
