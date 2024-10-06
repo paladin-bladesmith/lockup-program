@@ -50,6 +50,8 @@ pub struct Lockup {
 }
 
 impl Lockup {
+    pub const LEN: usize = std::mem::size_of::<Lockup>();
+
     /// Create a new lockup account.
     pub fn new(
         amount: u64,
