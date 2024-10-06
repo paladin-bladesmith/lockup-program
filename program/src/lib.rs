@@ -1,3 +1,4 @@
+#![allow(unexpected_cfgs)]
 //! Paladin Lockup program.
 //!
 //! Allows for the creation of lockups that can be used to restrict the
