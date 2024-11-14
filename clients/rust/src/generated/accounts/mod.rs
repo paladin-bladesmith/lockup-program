@@ -5,5 +5,6 @@
 //! <https://github.com/kinobi-so/kinobi>
 
 pub(crate) mod r#lockup;
+pub(crate) mod r#lockup_pool;
 
-pub use self::r#lockup::*;
+pub use self::{r#lockup::*, r#lockup_pool::*};

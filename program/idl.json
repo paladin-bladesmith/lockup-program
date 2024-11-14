@@ -30,6 +30,14 @@
           ]
         },
         {
+          "name": "lockupPool",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "Lockup pool"
+          ]
+        },
+        {
           "name": "lockupAccount",
           "isMut": true,
           "isSigner": false,
@@ -72,6 +80,10 @@
       ],
       "args": [
         {
+          "name": "metadata",
+          "type": "publicKey"
+        },
+        {
           "name": "amount",
           "type": "u64"
         }
@@ -90,6 +102,14 @@
           "isSigner": true,
           "docs": [
             "Lockup authority"
+          ]
+        },
+        {
+          "name": "lockupPool",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "Lockup pool"
           ]
         },
         {
@@ -184,6 +204,38 @@
   ],
   "accounts": [
     {
+      "name": "LockupPool",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "discriminator",
+            "type": {
+              "array": [
+                "u8",
+                8
+              ]
+            }
+          },
+          {
+            "name": "entries",
+            "type": {
+              "array": [
+                {
+                  "defined": "LockupPoolEntry"
+                },
+                256
+              ]
+            }
+          },
+          {
+            "name": "entriesLen",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
       "name": "Lockup",
       "type": {
         "kind": "struct",
@@ -222,6 +274,10 @@
             "type": "publicKey"
           },
           {
+            "name": "pool",
+            "type": "publicKey"
+          },
+          {
             "name": "metadata",
             "type": "publicKey"
           }
@@ -254,6 +310,11 @@
       "code": 4,
       "name": "LockupAlreadyUnlocked",
       "msg": "Lockup already unlocked."
+    },
+    {
+      "code": 5,
+      "name": "AmountTooLow",
+      "msg": "Amount too low."
     }
   ],
   "metadata": {

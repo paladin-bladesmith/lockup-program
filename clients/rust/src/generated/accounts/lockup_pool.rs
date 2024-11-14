@@ -5,41 +5,20 @@
 //! <https://github.com/kinobi-so/kinobi>
 
 use {
-    crate::hooked::NullableU64,
+    crate::generated::types::LockupPoolEntry,
     borsh::{BorshDeserialize, BorshSerialize},
-    solana_program::pubkey::Pubkey,
 };
 
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct Lockup {
+pub struct LockupPool {
     pub discriminator: [u8; 8],
-    pub amount: u64,
-    #[cfg_attr(
-        feature = "serde",
-        serde(with = "serde_with::As::<serde_with::DisplayFromStr>")
-    )]
-    pub authority: Pubkey,
-    pub lockup_start_timestamp: u64,
-    pub lockup_end_timestamp: NullableU64,
-    #[cfg_attr(
-        feature = "serde",
-        serde(with = "serde_with::As::<serde_with::DisplayFromStr>")
-    )]
-    pub mint: Pubkey,
-    #[cfg_attr(
-        feature = "serde",
-        serde(with = "serde_with::As::<serde_with::DisplayFromStr>")
-    )]
-    pub pool: Pubkey,
-    #[cfg_attr(
-        feature = "serde",
-        serde(with = "serde_with::As::<serde_with::DisplayFromStr>")
-    )]
-    pub metadata: Pubkey,
+    #[cfg_attr(feature = "serde", serde(with = "serde_with::As::<serde_with::Bytes>"))]
+    pub entries: [LockupPoolEntry; 256],
+    pub entries_len: u64,
 }
 
-impl Lockup {
+impl LockupPool {
     #[inline(always)]
     pub fn from_bytes(data: &[u8]) -> Result<Self, std::io::Error> {
         let mut data = data;
@@ -47,7 +26,7 @@ impl Lockup {
     }
 }
 
-impl<'a> TryFrom<&solana_program::account_info::AccountInfo<'a>> for Lockup {
+impl<'a> TryFrom<&solana_program::account_info::AccountInfo<'a>> for LockupPool {
     type Error = std::io::Error;
 
     fn try_from(
@@ -59,26 +38,26 @@ impl<'a> TryFrom<&solana_program::account_info::AccountInfo<'a>> for Lockup {
 }
 
 #[cfg(feature = "anchor")]
-impl anchor_lang::AccountDeserialize for Lockup {
+impl anchor_lang::AccountDeserialize for LockupPool {
     fn try_deserialize_unchecked(buf: &mut &[u8]) -> anchor_lang::Result<Self> {
         Ok(Self::deserialize(buf)?)
     }
 }
 
 #[cfg(feature = "anchor")]
-impl anchor_lang::AccountSerialize for Lockup {}
+impl anchor_lang::AccountSerialize for LockupPool {}
 
 #[cfg(feature = "anchor")]
-impl anchor_lang::Owner for Lockup {
+impl anchor_lang::Owner for LockupPool {
     fn owner() -> Pubkey {
         crate::PALADIN_LOCKUP_ID
     }
 }
 
 #[cfg(feature = "anchor-idl-build")]
-impl anchor_lang::IdlBuild for Lockup {}
+impl anchor_lang::IdlBuild for LockupPool {}
 
 #[cfg(feature = "anchor-idl-build")]
-impl anchor_lang::Discriminator for Lockup {
+impl anchor_lang::Discriminator for LockupPool {
     const DISCRIMINATOR: [u8; 8] = [0; 8];
 }

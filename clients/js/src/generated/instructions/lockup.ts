@@ -8,6 +8,8 @@
 
 import {
   combineCodec,
+  getAddressDecoder,
+  getAddressEncoder,
   getStructDecoder,
   getStructEncoder,
   getU64Decoder,
@@ -37,6 +39,7 @@ export type LockupInstruction<
   TAccountLockupAuthority extends string | IAccountMeta<string> = string,
   TAccountTokenOwner extends string | IAccountMeta<string> = string,
   TAccountDepositorTokenAccount extends string | IAccountMeta<string> = string,
+  TAccountLockupPool extends string | IAccountMeta<string> = string,
   TAccountLockupAccount extends string | IAccountMeta<string> = string,
   TAccountEscrowAuthority extends string | IAccountMeta<string> = string,
   TAccountEscrowTokenAccount extends string | IAccountMeta<string> = string,
@@ -59,6 +62,9 @@ export type LockupInstruction<
       TAccountDepositorTokenAccount extends string
         ? WritableAccount<TAccountDepositorTokenAccount>
         : TAccountDepositorTokenAccount,
+      TAccountLockupPool extends string
+        ? WritableAccount<TAccountLockupPool>
+        : TAccountLockupPool,
       TAccountLockupAccount extends string
         ? WritableAccount<TAccountLockupAccount>
         : TAccountLockupAccount,
@@ -78,14 +84,22 @@ export type LockupInstruction<
     ]
   >;
 
-export type LockupInstructionData = { discriminator: number; amount: bigint };
+export type LockupInstructionData = {
+  discriminator: number;
+  metadata: Address;
+  amount: bigint;
+};
 
-export type LockupInstructionDataArgs = { amount: number | bigint };
+export type LockupInstructionDataArgs = {
+  metadata: Address;
+  amount: number | bigint;
+};
 
 export function getLockupInstructionDataEncoder(): Encoder<LockupInstructionDataArgs> {
   return transformEncoder(
     getStructEncoder([
       ['discriminator', getU8Encoder()],
+      ['metadata', getAddressEncoder()],
       ['amount', getU64Encoder()],
     ]),
     (value) => ({ ...value, discriminator: 0 })
@@ -95,6 +109,7 @@ export function getLockupInstructionDataEncoder(): Encoder<LockupInstructionData
 export function getLockupInstructionDataDecoder(): Decoder<LockupInstructionData> {
   return getStructDecoder([
     ['discriminator', getU8Decoder()],
+    ['metadata', getAddressDecoder()],
     ['amount', getU64Decoder()],
   ]);
 }
@@ -113,6 +128,7 @@ export type LockupInput<
   TAccountLockupAuthority extends string = string,
   TAccountTokenOwner extends string = string,
   TAccountDepositorTokenAccount extends string = string,
+  TAccountLockupPool extends string = string,
   TAccountLockupAccount extends string = string,
   TAccountEscrowAuthority extends string = string,
   TAccountEscrowTokenAccount extends string = string,
@@ -125,6 +141,8 @@ export type LockupInput<
   tokenOwner: TransactionSigner<TAccountTokenOwner>;
   /** Depositor token account */
   depositorTokenAccount: Address<TAccountDepositorTokenAccount>;
+  /** Lockup pool */
+  lockupPool: Address<TAccountLockupPool>;
   /** Lockup account */
   lockupAccount: Address<TAccountLockupAccount>;
   /** Escrow authority */
@@ -135,6 +153,7 @@ export type LockupInput<
   tokenMint: Address<TAccountTokenMint>;
   /** Token program */
   tokenProgram?: Address<TAccountTokenProgram>;
+  metadata: LockupInstructionDataArgs['metadata'];
   amount: LockupInstructionDataArgs['amount'];
 };
 
@@ -142,6 +161,7 @@ export function getLockupInstruction<
   TAccountLockupAuthority extends string,
   TAccountTokenOwner extends string,
   TAccountDepositorTokenAccount extends string,
+  TAccountLockupPool extends string,
   TAccountLockupAccount extends string,
   TAccountEscrowAuthority extends string,
   TAccountEscrowTokenAccount extends string,
@@ -152,6 +172,7 @@ export function getLockupInstruction<
     TAccountLockupAuthority,
     TAccountTokenOwner,
     TAccountDepositorTokenAccount,
+    TAccountLockupPool,
     TAccountLockupAccount,
     TAccountEscrowAuthority,
     TAccountEscrowTokenAccount,
@@ -163,6 +184,7 @@ export function getLockupInstruction<
   TAccountLockupAuthority,
   TAccountTokenOwner,
   TAccountDepositorTokenAccount,
+  TAccountLockupPool,
   TAccountLockupAccount,
   TAccountEscrowAuthority,
   TAccountEscrowTokenAccount,
@@ -183,6 +205,7 @@ export function getLockupInstruction<
       value: input.depositorTokenAccount ?? null,
       isWritable: true,
     },
+    lockupPool: { value: input.lockupPool ?? null, isWritable: true },
     lockupAccount: { value: input.lockupAccount ?? null, isWritable: true },
     escrowAuthority: {
       value: input.escrowAuthority ?? null,
@@ -215,6 +238,7 @@ export function getLockupInstruction<
       getAccountMeta(accounts.lockupAuthority),
       getAccountMeta(accounts.tokenOwner),
       getAccountMeta(accounts.depositorTokenAccount),
+      getAccountMeta(accounts.lockupPool),
       getAccountMeta(accounts.lockupAccount),
       getAccountMeta(accounts.escrowAuthority),
       getAccountMeta(accounts.escrowTokenAccount),
@@ -230,6 +254,7 @@ export function getLockupInstruction<
     TAccountLockupAuthority,
     TAccountTokenOwner,
     TAccountDepositorTokenAccount,
+    TAccountLockupPool,
     TAccountLockupAccount,
     TAccountEscrowAuthority,
     TAccountEscrowTokenAccount,
@@ -252,16 +277,18 @@ export type ParsedLockupInstruction<
     tokenOwner: TAccountMetas[1];
     /** Depositor token account */
     depositorTokenAccount: TAccountMetas[2];
+    /** Lockup pool */
+    lockupPool: TAccountMetas[3];
     /** Lockup account */
-    lockupAccount: TAccountMetas[3];
+    lockupAccount: TAccountMetas[4];
     /** Escrow authority */
-    escrowAuthority: TAccountMetas[4];
+    escrowAuthority: TAccountMetas[5];
     /** Escrow token account */
-    escrowTokenAccount: TAccountMetas[5];
+    escrowTokenAccount: TAccountMetas[6];
     /** Token mint */
-    tokenMint: TAccountMetas[6];
+    tokenMint: TAccountMetas[7];
     /** Token program */
-    tokenProgram: TAccountMetas[7];
+    tokenProgram: TAccountMetas[8];
   };
   data: LockupInstructionData;
 };
@@ -274,7 +301,7 @@ export function parseLockupInstruction<
     IInstructionWithAccounts<TAccountMetas> &
     IInstructionWithData<Uint8Array>
 ): ParsedLockupInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 8) {
+  if (instruction.accounts.length < 9) {
     // TODO: Coded error.
     throw new Error('Not enough accounts');
   }
@@ -290,6 +317,7 @@ export function parseLockupInstruction<
       lockupAuthority: getNextAccount(),
       tokenOwner: getNextAccount(),
       depositorTokenAccount: getNextAccount(),
+      lockupPool: getNextAccount(),
       lockupAccount: getNextAccount(),
       escrowAuthority: getNextAccount(),
       escrowTokenAccount: getNextAccount(),

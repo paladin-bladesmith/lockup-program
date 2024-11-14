@@ -24,8 +24,11 @@ export const PALADIN_LOCKUP_ERROR__INCORRECT_ESCROW_TOKEN_ACCOUNT = 0x2; // 2
 export const PALADIN_LOCKUP_ERROR__LOCKUP_ACTIVE = 0x3; // 3
 /** LockupAlreadyUnlocked: Lockup already unlocked. */
 export const PALADIN_LOCKUP_ERROR__LOCKUP_ALREADY_UNLOCKED = 0x4; // 4
+/** AmountTooLow: Amount too low. */
+export const PALADIN_LOCKUP_ERROR__AMOUNT_TOO_LOW = 0x5; // 5
 
 export type PaladinLockupError =
+  | typeof PALADIN_LOCKUP_ERROR__AMOUNT_TOO_LOW
   | typeof PALADIN_LOCKUP_ERROR__INCORRECT_ESCROW_AUTHORITY_ADDRESS
   | typeof PALADIN_LOCKUP_ERROR__INCORRECT_ESCROW_TOKEN_ACCOUNT
   | typeof PALADIN_LOCKUP_ERROR__INCORRECT_MINT
@@ -35,6 +38,7 @@ export type PaladinLockupError =
 let paladinLockupErrorMessages: Record<PaladinLockupError, string> | undefined;
 if (process.env.NODE_ENV !== 'production') {
   paladinLockupErrorMessages = {
+    [PALADIN_LOCKUP_ERROR__AMOUNT_TOO_LOW]: `Amount too low.`,
     [PALADIN_LOCKUP_ERROR__INCORRECT_ESCROW_AUTHORITY_ADDRESS]: `Incorrect escrow authority address.`,
     [PALADIN_LOCKUP_ERROR__INCORRECT_ESCROW_TOKEN_ACCOUNT]: `Incorrect escrow token account.`,
     [PALADIN_LOCKUP_ERROR__INCORRECT_MINT]: `Incorrect mint.`,

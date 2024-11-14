@@ -4,7 +4,10 @@
 //!
 //! <https://github.com/kinobi-so/kinobi>
 
-use borsh::{BorshDeserialize, BorshSerialize};
+use {
+    borsh::{BorshDeserialize, BorshSerialize},
+    solana_program::pubkey::Pubkey,
+};
 
 /// Accounts.
 pub struct Lockup {
@@ -14,6 +17,8 @@ pub struct Lockup {
     pub token_owner: solana_program::pubkey::Pubkey,
     /// Depositor token account
     pub depositor_token_account: solana_program::pubkey::Pubkey,
+    /// Lockup pool
+    pub lockup_pool: solana_program::pubkey::Pubkey,
     /// Lockup account
     pub lockup_account: solana_program::pubkey::Pubkey,
     /// Escrow authority
@@ -39,7 +44,7 @@ impl Lockup {
         args: LockupInstructionArgs,
         remaining_accounts: &[solana_program::instruction::AccountMeta],
     ) -> solana_program::instruction::Instruction {
-        let mut accounts = Vec::with_capacity(8 + remaining_accounts.len());
+        let mut accounts = Vec::with_capacity(9 + remaining_accounts.len());
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
             self.lockup_authority,
             false,
@@ -50,6 +55,10 @@ impl Lockup {
         ));
         accounts.push(solana_program::instruction::AccountMeta::new(
             self.depositor_token_account,
+            false,
+        ));
+        accounts.push(solana_program::instruction::AccountMeta::new(
+            self.lockup_pool,
             false,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new(
@@ -105,6 +114,7 @@ impl Default for LockupInstructionData {
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct LockupInstructionArgs {
+    pub metadata: Pubkey,
     pub amount: u64,
 }
 
@@ -115,22 +125,25 @@ pub struct LockupInstructionArgs {
 ///   0. `[]` lockup_authority
 ///   1. `[signer]` token_owner
 ///   2. `[writable]` depositor_token_account
-///   3. `[writable]` lockup_account
-///   4. `[]` escrow_authority
-///   5. `[writable]` escrow_token_account
-///   6. `[]` token_mint
-///   7. `[optional]` token_program (default to
+///   3. `[writable]` lockup_pool
+///   4. `[writable]` lockup_account
+///   5. `[]` escrow_authority
+///   6. `[writable]` escrow_token_account
+///   7. `[]` token_mint
+///   8. `[optional]` token_program (default to
 ///      `TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA`)
 #[derive(Clone, Debug, Default)]
 pub struct LockupBuilder {
     lockup_authority: Option<solana_program::pubkey::Pubkey>,
     token_owner: Option<solana_program::pubkey::Pubkey>,
     depositor_token_account: Option<solana_program::pubkey::Pubkey>,
+    lockup_pool: Option<solana_program::pubkey::Pubkey>,
     lockup_account: Option<solana_program::pubkey::Pubkey>,
     escrow_authority: Option<solana_program::pubkey::Pubkey>,
     escrow_token_account: Option<solana_program::pubkey::Pubkey>,
     token_mint: Option<solana_program::pubkey::Pubkey>,
     token_program: Option<solana_program::pubkey::Pubkey>,
+    metadata: Option<Pubkey>,
     amount: Option<u64>,
     __remaining_accounts: Vec<solana_program::instruction::AccountMeta>,
 }
@@ -161,6 +174,12 @@ impl LockupBuilder {
         depositor_token_account: solana_program::pubkey::Pubkey,
     ) -> &mut Self {
         self.depositor_token_account = Some(depositor_token_account);
+        self
+    }
+    /// Lockup pool
+    #[inline(always)]
+    pub fn lockup_pool(&mut self, lockup_pool: solana_program::pubkey::Pubkey) -> &mut Self {
+        self.lockup_pool = Some(lockup_pool);
         self
     }
     /// Lockup account
@@ -201,6 +220,11 @@ impl LockupBuilder {
         self
     }
     #[inline(always)]
+    pub fn metadata(&mut self, metadata: Pubkey) -> &mut Self {
+        self.metadata = Some(metadata);
+        self
+    }
+    #[inline(always)]
     pub fn amount(&mut self, amount: u64) -> &mut Self {
         self.amount = Some(amount);
         self
@@ -231,6 +255,7 @@ impl LockupBuilder {
             depositor_token_account: self
                 .depositor_token_account
                 .expect("depositor_token_account is not set"),
+            lockup_pool: self.lockup_pool.expect("lockup_pool is not set"),
             lockup_account: self.lockup_account.expect("lockup_account is not set"),
             escrow_authority: self.escrow_authority.expect("escrow_authority is not set"),
             escrow_token_account: self
@@ -242,6 +267,7 @@ impl LockupBuilder {
             )),
         };
         let args = LockupInstructionArgs {
+            metadata: self.metadata.clone().expect("metadata is not set"),
             amount: self.amount.clone().expect("amount is not set"),
         };
 
@@ -257,6 +283,8 @@ pub struct LockupCpiAccounts<'a, 'b> {
     pub token_owner: &'b solana_program::account_info::AccountInfo<'a>,
     /// Depositor token account
     pub depositor_token_account: &'b solana_program::account_info::AccountInfo<'a>,
+    /// Lockup pool
+    pub lockup_pool: &'b solana_program::account_info::AccountInfo<'a>,
     /// Lockup account
     pub lockup_account: &'b solana_program::account_info::AccountInfo<'a>,
     /// Escrow authority
@@ -279,6 +307,8 @@ pub struct LockupCpi<'a, 'b> {
     pub token_owner: &'b solana_program::account_info::AccountInfo<'a>,
     /// Depositor token account
     pub depositor_token_account: &'b solana_program::account_info::AccountInfo<'a>,
+    /// Lockup pool
+    pub lockup_pool: &'b solana_program::account_info::AccountInfo<'a>,
     /// Lockup account
     pub lockup_account: &'b solana_program::account_info::AccountInfo<'a>,
     /// Escrow authority
@@ -304,6 +334,7 @@ impl<'a, 'b> LockupCpi<'a, 'b> {
             lockup_authority: accounts.lockup_authority,
             token_owner: accounts.token_owner,
             depositor_token_account: accounts.depositor_token_account,
+            lockup_pool: accounts.lockup_pool,
             lockup_account: accounts.lockup_account,
             escrow_authority: accounts.escrow_authority,
             escrow_token_account: accounts.escrow_token_account,
@@ -345,7 +376,7 @@ impl<'a, 'b> LockupCpi<'a, 'b> {
             bool,
         )],
     ) -> solana_program::entrypoint::ProgramResult {
-        let mut accounts = Vec::with_capacity(8 + remaining_accounts.len());
+        let mut accounts = Vec::with_capacity(9 + remaining_accounts.len());
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
             *self.lockup_authority.key,
             false,
@@ -356,6 +387,10 @@ impl<'a, 'b> LockupCpi<'a, 'b> {
         ));
         accounts.push(solana_program::instruction::AccountMeta::new(
             *self.depositor_token_account.key,
+            false,
+        ));
+        accounts.push(solana_program::instruction::AccountMeta::new(
+            *self.lockup_pool.key,
             false,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new(
@@ -394,11 +429,12 @@ impl<'a, 'b> LockupCpi<'a, 'b> {
             accounts,
             data,
         };
-        let mut account_infos = Vec::with_capacity(8 + 1 + remaining_accounts.len());
+        let mut account_infos = Vec::with_capacity(9 + 1 + remaining_accounts.len());
         account_infos.push(self.__program.clone());
         account_infos.push(self.lockup_authority.clone());
         account_infos.push(self.token_owner.clone());
         account_infos.push(self.depositor_token_account.clone());
+        account_infos.push(self.lockup_pool.clone());
         account_infos.push(self.lockup_account.clone());
         account_infos.push(self.escrow_authority.clone());
         account_infos.push(self.escrow_token_account.clone());
@@ -423,11 +459,12 @@ impl<'a, 'b> LockupCpi<'a, 'b> {
 ///   0. `[]` lockup_authority
 ///   1. `[signer]` token_owner
 ///   2. `[writable]` depositor_token_account
-///   3. `[writable]` lockup_account
-///   4. `[]` escrow_authority
-///   5. `[writable]` escrow_token_account
-///   6. `[]` token_mint
-///   7. `[]` token_program
+///   3. `[writable]` lockup_pool
+///   4. `[writable]` lockup_account
+///   5. `[]` escrow_authority
+///   6. `[writable]` escrow_token_account
+///   7. `[]` token_mint
+///   8. `[]` token_program
 #[derive(Clone, Debug)]
 pub struct LockupCpiBuilder<'a, 'b> {
     instruction: Box<LockupCpiBuilderInstruction<'a, 'b>>,
@@ -440,11 +477,13 @@ impl<'a, 'b> LockupCpiBuilder<'a, 'b> {
             lockup_authority: None,
             token_owner: None,
             depositor_token_account: None,
+            lockup_pool: None,
             lockup_account: None,
             escrow_authority: None,
             escrow_token_account: None,
             token_mint: None,
             token_program: None,
+            metadata: None,
             amount: None,
             __remaining_accounts: Vec::new(),
         });
@@ -475,6 +514,15 @@ impl<'a, 'b> LockupCpiBuilder<'a, 'b> {
         depositor_token_account: &'b solana_program::account_info::AccountInfo<'a>,
     ) -> &mut Self {
         self.instruction.depositor_token_account = Some(depositor_token_account);
+        self
+    }
+    /// Lockup pool
+    #[inline(always)]
+    pub fn lockup_pool(
+        &mut self,
+        lockup_pool: &'b solana_program::account_info::AccountInfo<'a>,
+    ) -> &mut Self {
+        self.instruction.lockup_pool = Some(lockup_pool);
         self
     }
     /// Lockup account
@@ -520,6 +568,11 @@ impl<'a, 'b> LockupCpiBuilder<'a, 'b> {
         token_program: &'b solana_program::account_info::AccountInfo<'a>,
     ) -> &mut Self {
         self.instruction.token_program = Some(token_program);
+        self
+    }
+    #[inline(always)]
+    pub fn metadata(&mut self, metadata: Pubkey) -> &mut Self {
+        self.instruction.metadata = Some(metadata);
         self
     }
     #[inline(always)]
@@ -570,6 +623,11 @@ impl<'a, 'b> LockupCpiBuilder<'a, 'b> {
         signers_seeds: &[&[&[u8]]],
     ) -> solana_program::entrypoint::ProgramResult {
         let args = LockupInstructionArgs {
+            metadata: self
+                .instruction
+                .metadata
+                .clone()
+                .expect("metadata is not set"),
             amount: self.instruction.amount.clone().expect("amount is not set"),
         };
         let instruction = LockupCpi {
@@ -589,6 +647,11 @@ impl<'a, 'b> LockupCpiBuilder<'a, 'b> {
                 .instruction
                 .depositor_token_account
                 .expect("depositor_token_account is not set"),
+
+            lockup_pool: self
+                .instruction
+                .lockup_pool
+                .expect("lockup_pool is not set"),
 
             lockup_account: self
                 .instruction
@@ -626,11 +689,13 @@ struct LockupCpiBuilderInstruction<'a, 'b> {
     lockup_authority: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     token_owner: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     depositor_token_account: Option<&'b solana_program::account_info::AccountInfo<'a>>,
+    lockup_pool: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     lockup_account: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     escrow_authority: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     escrow_token_account: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     token_mint: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     token_program: Option<&'b solana_program::account_info::AccountInfo<'a>>,
+    metadata: Option<Pubkey>,
     amount: Option<u64>,
     /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.
     __remaining_accounts: Vec<(

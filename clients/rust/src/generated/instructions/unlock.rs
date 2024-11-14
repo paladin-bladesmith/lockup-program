@@ -10,6 +10,8 @@ use borsh::{BorshDeserialize, BorshSerialize};
 pub struct Unlock {
     /// Lockup authority
     pub lockup_authority: solana_program::pubkey::Pubkey,
+    /// Lockup pool
+    pub lockup_pool: solana_program::pubkey::Pubkey,
     /// Lockup account
     pub lockup_account: solana_program::pubkey::Pubkey,
 }
@@ -23,10 +25,14 @@ impl Unlock {
         &self,
         remaining_accounts: &[solana_program::instruction::AccountMeta],
     ) -> solana_program::instruction::Instruction {
-        let mut accounts = Vec::with_capacity(2 + remaining_accounts.len());
+        let mut accounts = Vec::with_capacity(3 + remaining_accounts.len());
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
             self.lockup_authority,
             true,
+        ));
+        accounts.push(solana_program::instruction::AccountMeta::new(
+            self.lockup_pool,
+            false,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new(
             self.lockup_account,
@@ -65,10 +71,12 @@ impl Default for UnlockInstructionData {
 /// ### Accounts:
 ///
 ///   0. `[signer]` lockup_authority
-///   1. `[writable]` lockup_account
+///   1. `[writable]` lockup_pool
+///   2. `[writable]` lockup_account
 #[derive(Clone, Debug, Default)]
 pub struct UnlockBuilder {
     lockup_authority: Option<solana_program::pubkey::Pubkey>,
+    lockup_pool: Option<solana_program::pubkey::Pubkey>,
     lockup_account: Option<solana_program::pubkey::Pubkey>,
     __remaining_accounts: Vec<solana_program::instruction::AccountMeta>,
 }
@@ -84,6 +92,12 @@ impl UnlockBuilder {
         lockup_authority: solana_program::pubkey::Pubkey,
     ) -> &mut Self {
         self.lockup_authority = Some(lockup_authority);
+        self
+    }
+    /// Lockup pool
+    #[inline(always)]
+    pub fn lockup_pool(&mut self, lockup_pool: solana_program::pubkey::Pubkey) -> &mut Self {
+        self.lockup_pool = Some(lockup_pool);
         self
     }
     /// Lockup account
@@ -114,6 +128,7 @@ impl UnlockBuilder {
     pub fn instruction(&self) -> solana_program::instruction::Instruction {
         let accounts = Unlock {
             lockup_authority: self.lockup_authority.expect("lockup_authority is not set"),
+            lockup_pool: self.lockup_pool.expect("lockup_pool is not set"),
             lockup_account: self.lockup_account.expect("lockup_account is not set"),
         };
 
@@ -125,6 +140,8 @@ impl UnlockBuilder {
 pub struct UnlockCpiAccounts<'a, 'b> {
     /// Lockup authority
     pub lockup_authority: &'b solana_program::account_info::AccountInfo<'a>,
+    /// Lockup pool
+    pub lockup_pool: &'b solana_program::account_info::AccountInfo<'a>,
     /// Lockup account
     pub lockup_account: &'b solana_program::account_info::AccountInfo<'a>,
 }
@@ -135,6 +152,8 @@ pub struct UnlockCpi<'a, 'b> {
     pub __program: &'b solana_program::account_info::AccountInfo<'a>,
     /// Lockup authority
     pub lockup_authority: &'b solana_program::account_info::AccountInfo<'a>,
+    /// Lockup pool
+    pub lockup_pool: &'b solana_program::account_info::AccountInfo<'a>,
     /// Lockup account
     pub lockup_account: &'b solana_program::account_info::AccountInfo<'a>,
 }
@@ -147,6 +166,7 @@ impl<'a, 'b> UnlockCpi<'a, 'b> {
         Self {
             __program: program,
             lockup_authority: accounts.lockup_authority,
+            lockup_pool: accounts.lockup_pool,
             lockup_account: accounts.lockup_account,
         }
     }
@@ -183,10 +203,14 @@ impl<'a, 'b> UnlockCpi<'a, 'b> {
             bool,
         )],
     ) -> solana_program::entrypoint::ProgramResult {
-        let mut accounts = Vec::with_capacity(2 + remaining_accounts.len());
+        let mut accounts = Vec::with_capacity(3 + remaining_accounts.len());
         accounts.push(solana_program::instruction::AccountMeta::new_readonly(
             *self.lockup_authority.key,
             true,
+        ));
+        accounts.push(solana_program::instruction::AccountMeta::new(
+            *self.lockup_pool.key,
+            false,
         ));
         accounts.push(solana_program::instruction::AccountMeta::new(
             *self.lockup_account.key,
@@ -206,9 +230,10 @@ impl<'a, 'b> UnlockCpi<'a, 'b> {
             accounts,
             data,
         };
-        let mut account_infos = Vec::with_capacity(2 + 1 + remaining_accounts.len());
+        let mut account_infos = Vec::with_capacity(3 + 1 + remaining_accounts.len());
         account_infos.push(self.__program.clone());
         account_infos.push(self.lockup_authority.clone());
+        account_infos.push(self.lockup_pool.clone());
         account_infos.push(self.lockup_account.clone());
         remaining_accounts
             .iter()
@@ -227,7 +252,8 @@ impl<'a, 'b> UnlockCpi<'a, 'b> {
 /// ### Accounts:
 ///
 ///   0. `[signer]` lockup_authority
-///   1. `[writable]` lockup_account
+///   1. `[writable]` lockup_pool
+///   2. `[writable]` lockup_account
 #[derive(Clone, Debug)]
 pub struct UnlockCpiBuilder<'a, 'b> {
     instruction: Box<UnlockCpiBuilderInstruction<'a, 'b>>,
@@ -238,6 +264,7 @@ impl<'a, 'b> UnlockCpiBuilder<'a, 'b> {
         let instruction = Box::new(UnlockCpiBuilderInstruction {
             __program: program,
             lockup_authority: None,
+            lockup_pool: None,
             lockup_account: None,
             __remaining_accounts: Vec::new(),
         });
@@ -250,6 +277,15 @@ impl<'a, 'b> UnlockCpiBuilder<'a, 'b> {
         lockup_authority: &'b solana_program::account_info::AccountInfo<'a>,
     ) -> &mut Self {
         self.instruction.lockup_authority = Some(lockup_authority);
+        self
+    }
+    /// Lockup pool
+    #[inline(always)]
+    pub fn lockup_pool(
+        &mut self,
+        lockup_pool: &'b solana_program::account_info::AccountInfo<'a>,
+    ) -> &mut Self {
+        self.instruction.lockup_pool = Some(lockup_pool);
         self
     }
     /// Lockup account
@@ -311,6 +347,11 @@ impl<'a, 'b> UnlockCpiBuilder<'a, 'b> {
                 .lockup_authority
                 .expect("lockup_authority is not set"),
 
+            lockup_pool: self
+                .instruction
+                .lockup_pool
+                .expect("lockup_pool is not set"),
+
             lockup_account: self
                 .instruction
                 .lockup_account
@@ -327,6 +368,7 @@ impl<'a, 'b> UnlockCpiBuilder<'a, 'b> {
 struct UnlockCpiBuilderInstruction<'a, 'b> {
     __program: &'b solana_program::account_info::AccountInfo<'a>,
     lockup_authority: Option<&'b solana_program::account_info::AccountInfo<'a>>,
+    lockup_pool: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     lockup_account: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.
     __remaining_accounts: Vec<(

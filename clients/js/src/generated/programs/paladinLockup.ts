@@ -22,6 +22,7 @@ export const PALADIN_LOCKUP_PROGRAM_ADDRESS =
   '4m9UhNYPXDHmBJ6qfn6zBjtA8xiKwz1w8Jd7TQ1Ref7e' as Address<'4m9UhNYPXDHmBJ6qfn6zBjtA8xiKwz1w8Jd7TQ1Ref7e'>;
 
 export enum PaladinLockupAccount {
+  LockupPool,
   Lockup,
 }
 
