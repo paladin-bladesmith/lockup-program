@@ -101,7 +101,7 @@ pub struct LockupInstructionData {
 
 impl LockupInstructionData {
     pub fn new() -> Self {
-        Self { discriminator: 0 }
+        Self { discriminator: 1 }
     }
 }
 

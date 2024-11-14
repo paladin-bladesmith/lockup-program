@@ -3,6 +3,24 @@
   "name": "paladin_lockup_program",
   "instructions": [
     {
+      "name": "InitializeLockupPool",
+      "accounts": [
+        {
+          "name": "lockupPool",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "Lockup pool"
+          ]
+        }
+      ],
+      "args": [],
+      "discriminant": {
+        "type": "u8",
+        "value": 0
+      }
+    },
+    {
       "name": "Lockup",
       "accounts": [
         {
@@ -90,7 +108,7 @@
       ],
       "discriminant": {
         "type": "u8",
-        "value": 0
+        "value": 1
       }
     },
     {
@@ -124,7 +142,7 @@
       "args": [],
       "discriminant": {
         "type": "u8",
-        "value": 1
+        "value": 2
       }
     },
     {
@@ -198,7 +216,7 @@
       "args": [],
       "discriminant": {
         "type": "u8",
-        "value": 2
+        "value": 3
       }
     }
   ],

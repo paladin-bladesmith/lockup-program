@@ -60,7 +60,7 @@ export type UnlockInstructionDataArgs = {};
 export function getUnlockInstructionDataEncoder(): Encoder<UnlockInstructionDataArgs> {
   return transformEncoder(
     getStructEncoder([['discriminator', getU8Encoder()]]),
-    (value) => ({ ...value, discriminator: 1 })
+    (value) => ({ ...value, discriminator: 2 })
   );
 }
 

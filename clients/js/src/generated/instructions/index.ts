@@ -6,6 +6,7 @@
  * @see https://github.com/kinobi-so/kinobi
  */
 
+export * from './initializeLockupPool';
 export * from './lockup';
 export * from './unlock';
 export * from './withdraw';

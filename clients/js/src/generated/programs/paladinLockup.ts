@@ -13,6 +13,7 @@ import {
   type ReadonlyUint8Array,
 } from '@solana/web3.js';
 import {
+  type ParsedInitializeLockupPoolInstruction,
   type ParsedLockupInstruction,
   type ParsedUnlockInstruction,
   type ParsedWithdrawInstruction,
@@ -27,6 +28,7 @@ export enum PaladinLockupAccount {
 }
 
 export enum PaladinLockupInstruction {
+  InitializeLockupPool,
   Lockup,
   Unlock,
   Withdraw,
@@ -37,12 +39,15 @@ export function identifyPaladinLockupInstruction(
 ): PaladinLockupInstruction {
   const data = 'data' in instruction ? instruction.data : instruction;
   if (containsBytes(data, getU8Encoder().encode(0), 0)) {
-    return PaladinLockupInstruction.Lockup;
+    return PaladinLockupInstruction.InitializeLockupPool;
   }
   if (containsBytes(data, getU8Encoder().encode(1), 0)) {
-    return PaladinLockupInstruction.Unlock;
+    return PaladinLockupInstruction.Lockup;
   }
   if (containsBytes(data, getU8Encoder().encode(2), 0)) {
+    return PaladinLockupInstruction.Unlock;
+  }
+  if (containsBytes(data, getU8Encoder().encode(3), 0)) {
     return PaladinLockupInstruction.Withdraw;
   }
   throw new Error(
@@ -53,6 +58,9 @@ export function identifyPaladinLockupInstruction(
 export type ParsedPaladinLockupInstruction<
   TProgram extends string = '4m9UhNYPXDHmBJ6qfn6zBjtA8xiKwz1w8Jd7TQ1Ref7e',
 > =
+  | ({
+      instructionType: PaladinLockupInstruction.InitializeLockupPool;
+    } & ParsedInitializeLockupPoolInstruction<TProgram>)
   | ({
       instructionType: PaladinLockupInstruction.Lockup;
     } & ParsedLockupInstruction<TProgram>)

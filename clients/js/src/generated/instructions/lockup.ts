@@ -102,7 +102,7 @@ export function getLockupInstructionDataEncoder(): Encoder<LockupInstructionData
       ['metadata', getAddressEncoder()],
       ['amount', getU64Encoder()],
     ]),
-    (value) => ({ ...value, discriminator: 0 })
+    (value) => ({ ...value, discriminator: 1 })
   );
 }
 
