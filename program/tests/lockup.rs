@@ -21,6 +21,7 @@ use {
     spl_associated_token_account::get_associated_token_address_with_program_id,
     spl_discriminator::SplDiscriminate,
     spl_token_2022::{extension::StateWithExtensions, state::Account as TokenAccount},
+    std::cmp::Reverse,
     test_case::test_case,
 };
 
@@ -546,15 +547,13 @@ async fn lockup_pool_scenarios() {
         &mint,
         &spl_token_2022::id(),
     );
-    let metadata = Pubkey::new_unique();
 
     // Create the lockup pool account.
     let pool = Pubkey::new_unique();
     setup_lockup_pool(&mut context, &pool).await;
 
     // Create the token account.
-    let token_amount =
-        ((LockupPool::LOCKUP_CAPACITY * (LockupPool::LOCKUP_CAPACITY + 1)) / 2) as u64;
+    let token_amount = 1_000_000_000;
     setup_mint(&mut context, &mint, &Pubkey::new_unique(), token_amount).await;
     setup_token_account(
         &mut context,
@@ -580,44 +579,23 @@ async fn lockup_pool_scenarios() {
     .await;
 
     // Setup max lockup accounts.
-    let mut lockups = [Pubkey::default(); 256];
+    let mut lockups = [Pubkey::default(); LockupPool::LOCKUP_CAPACITY];
     for i in 0..LockupPool::LOCKUP_CAPACITY {
         let lockup = Pubkey::new_unique();
         lockups[i] = lockup;
 
-        // Setup native account.
-        let rent = context.banks_client.get_rent().await.unwrap();
-        let space = std::mem::size_of::<Lockup>();
-        let lamports = rent.minimum_balance(space);
-        context.set_account(
-            &lockup,
-            &AccountSharedData::new(lamports, space, &paladin_lockup_program::id()),
-        );
-
-        // Initialize the lockup.
-        let instruction = paladin_lockup_program::instruction::lockup(
-            &lockup_authority.pubkey(),
-            &token_owner.pubkey(),
-            &token_account,
+        initialize_lockup(
+            &mut context,
+            lockup_authority.pubkey(),
+            &token_owner,
+            token_account,
             pool,
-            &lockup,
-            &mint,
-            metadata,
+            lockup,
+            mint,
             (i + 1) as u64,
-            &spl_token_2022::id(),
-        );
-        let transaction = Transaction::new_signed_with_payer(
-            &[instruction],
-            Some(&context.payer.pubkey()),
-            &[&context.payer, &token_owner],
-            context.last_blockhash,
-        );
-        let _ = context.get_new_latest_blockhash().await.unwrap();
-        context
-            .banks_client
-            .process_transaction(transaction)
-            .await
-            .unwrap();
+        )
+        .await
+        .unwrap();
     }
 
     // Sanity - Check lockup accounts are as expected.
@@ -629,11 +607,105 @@ async fn lockup_pool_scenarios() {
         .unwrap();
     let lockup_pool = bytemuck::from_bytes::<LockupPool>(&lockup_pool.data);
     for (i, lockup) in lockups.iter().rev().enumerate() {
-        println!("{i}: {lockup} {:?}", lockup_pool.entries[i]);
-
         assert_eq!(&lockup_pool.entries[i].lockup, lockup);
-        assert_eq!(lockup_pool.entries[i].amount, (256 - i) as u64);
+        assert_eq!(
+            lockup_pool.entries[i].amount,
+            (LockupPool::LOCKUP_CAPACITY - i) as u64
+        );
     }
 
-    todo!();
+    // Act - Insert another lock with 100 weight, evicts the smallest.
+    initialize_lockup(
+        &mut context,
+        lockup_authority.pubkey(),
+        &token_owner,
+        token_account,
+        pool,
+        Pubkey::new_unique(),
+        mint,
+        100,
+    )
+    .await
+    .unwrap();
+
+    // Assert - The smallest was evicted & locks are in correct sort order.
+    let lockup_pool = context
+        .banks_client
+        .get_account(pool)
+        .await
+        .unwrap()
+        .unwrap();
+    let lockup_pool = bytemuck::from_bytes::<LockupPool>(&lockup_pool.data);
+    let mut lockup_pool_sorted = *lockup_pool;
+    lockup_pool_sorted
+        .entries
+        .sort_by_key(|entry| Reverse(entry.amount));
+    assert_eq!(lockup_pool.entries_len, LockupPool::LOCKUP_CAPACITY);
+    assert_eq!(lockup_pool, &lockup_pool_sorted);
+    assert_eq!(
+        lockup_pool.entries[LockupPool::LOCKUP_CAPACITY - 1].amount,
+        2
+    );
+
+    // Act - Try to insert a lock that is smaller than the smallest lock.
+    assert_eq!(
+        initialize_lockup(
+            &mut context,
+            lockup_authority.pubkey(),
+            &token_owner,
+            token_account,
+            pool,
+            Pubkey::new_unique(),
+            mint,
+            1,
+        )
+        .await
+        .unwrap_err()
+        .unwrap(),
+        TransactionError::InstructionError(
+            0,
+            InstructionError::Custom(PaladinLockupError::AmountTooLow as u32)
+        )
+    );
+}
+
+async fn initialize_lockup(
+    context: &mut ProgramTestContext,
+    lockup_authority: Pubkey,
+    token_owner: &Keypair,
+    token_account: Pubkey,
+    pool: Pubkey,
+    lockup: Pubkey,
+    mint: Pubkey,
+    amount: u64,
+) -> Result<(), BanksClientError> {
+    // Setup native account.
+    let rent = context.banks_client.get_rent().await.unwrap();
+    let space = std::mem::size_of::<Lockup>();
+    let lamports = rent.minimum_balance(space);
+    context.set_account(
+        &lockup,
+        &AccountSharedData::new(lamports, space, &paladin_lockup_program::id()),
+    );
+
+    // Initialize the lockup.
+    let instruction = paladin_lockup_program::instruction::lockup(
+        &lockup_authority,
+        &token_owner.pubkey(),
+        &token_account,
+        pool,
+        &lockup,
+        &mint,
+        Pubkey::new_unique(), // Metadata.
+        amount,
+        &spl_token_2022::id(),
+    );
+    let transaction = Transaction::new_signed_with_payer(
+        &[instruction],
+        Some(&context.payer.pubkey()),
+        &[&context.payer, token_owner],
+        context.last_blockhash,
+    );
+    let _ = context.get_new_latest_blockhash().await.unwrap();
+    context.banks_client.process_transaction(transaction).await
 }

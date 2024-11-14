@@ -134,12 +134,16 @@ fn process_lockup(
         };
 
     // Evict the smallest lock if necessary.
-    let last_amount = lockup_pool_state.entries[lockup_pool_state.entries_len].amount;
+    let last_index = std::cmp::min(
+        lockup_pool_state.entries_len,
+        LockupPool::LOCKUP_CAPACITY - 1,
+    );
+    let last_amount = lockup_pool_state.entries[last_index].amount;
     match (
         lockup_pool_state.entries_len == lockup_pool_state.entries.len(),
         amount > last_amount,
     ) {
-        (true, true) => todo!("Evict last"),
+        (true, true) => {}
         (true, false) => return Err(PaladinLockupError::AmountTooLow.into()),
         (false, _) => {
             lockup_pool_state.entries_len = lockup_pool_state.entries_len.checked_add(1).unwrap()
@@ -147,7 +151,6 @@ fn process_lockup(
     }
 
     // Binary search & insert the entry.
-    solana_program::msg!("0");
     let index = match lockup_pool_state
         .entries
         .binary_search_by_key(&Reverse(amount), |entry| Reverse(entry.amount))
@@ -155,14 +158,11 @@ fn process_lockup(
         Ok(index) => index,
         Err(index) => index,
     };
-    solana_program::msg!("1");
     *lockup_pool_state.entries.last_mut().unwrap() = LockupPoolEntry {
         lockup: *lockup_info.key,
         amount,
     };
-    solana_program::msg!("2");
     lockup_pool_state.entries[index..].rotate_right(1);
-    solana_program::msg!("3");
 
     // Transfer the tokens to the escrow token account.
     {
@@ -353,7 +353,6 @@ fn process_withdraw(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramRes
     {
         let bump_seed = [bump_seed];
         let escrow_authority_signer_seeds = collect_escrow_authority_signer_seeds(&bump_seed);
-
         let decimals = {
             let mint_data = mint_info.try_borrow_data()?;
             let mint = StateWithExtensions::<Mint>::unpack(&mint_data)?;
