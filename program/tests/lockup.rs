@@ -7,7 +7,7 @@ use {
         error::PaladinLockupError,
         state::{get_escrow_authority_address, Lockup},
     },
-    setup::{setup, setup_mint, setup_token_account},
+    setup::{setup, setup_lockup_pool, setup_mint, setup_token_account},
     solana_program_test::*,
     solana_sdk::{
         account::{Account, AccountSharedData},
@@ -26,19 +26,24 @@ use {
 
 #[tokio::test]
 async fn fail_incorrect_lockup_owner() {
+    let mut context = setup().start_with_context().await;
+
     let lockup_authority = Keypair::new();
     let mint = Pubkey::new_unique();
-
     let token_owner = Keypair::new();
     let token_account = get_associated_token_address_with_program_id(
         &token_owner.pubkey(),
         &mint,
         &spl_token_2022::id(),
     );
+    let metadata = Pubkey::new_unique();
 
+    // Create the lockup pool account.
+    let pool = Pubkey::new_unique();
+    setup_lockup_pool(&mut context, &pool).await;
+
+    // Create the lockup account with the incorrect owner.
     let lockup = Pubkey::new_unique();
-
-    let mut context = setup().start_with_context().await;
     setup_token_account(
         &mut context,
         &token_account,
@@ -47,8 +52,6 @@ async fn fail_incorrect_lockup_owner() {
         10_000,
     )
     .await;
-
-    // Create the lockup account with the incorrect owner.
     {
         let rent = context.banks_client.get_rent().await.unwrap();
         let space = std::mem::size_of::<Lockup>();
@@ -63,8 +66,10 @@ async fn fail_incorrect_lockup_owner() {
         &lockup_authority.pubkey(),
         &token_owner.pubkey(),
         &token_account,
+        pool,
         &lockup,
         &mint,
+        metadata,
         10_000,
         &spl_token_2022::id(),
     );
@@ -91,19 +96,22 @@ async fn fail_incorrect_lockup_owner() {
 
 #[tokio::test]
 async fn fail_lockup_not_enough_space() {
+    let mut context = setup().start_with_context().await;
+
     let lockup_authority = Keypair::new();
     let mint = Pubkey::new_unique();
-
     let token_owner = Keypair::new();
     let token_account = get_associated_token_address_with_program_id(
         &token_owner.pubkey(),
         &mint,
         &spl_token_2022::id(),
     );
+    let metadata = Pubkey::new_unique();
 
-    let lockup = Pubkey::new_unique();
+    // Create the lockup pool account.
+    let pool = Pubkey::new_unique();
+    setup_lockup_pool(&mut context, &pool).await;
 
-    let mut context = setup().start_with_context().await;
     setup_token_account(
         &mut context,
         &token_account,
@@ -114,6 +122,7 @@ async fn fail_lockup_not_enough_space() {
     .await;
 
     // Create the lockup account with not enough space.
+    let lockup = Pubkey::new_unique();
     {
         let rent = context.banks_client.get_rent().await.unwrap();
         let space = std::mem::size_of::<Lockup>().saturating_sub(6); // Not enough space.
@@ -128,8 +137,10 @@ async fn fail_lockup_not_enough_space() {
         &lockup_authority.pubkey(),
         &token_owner.pubkey(),
         &token_account,
+        pool,
         &lockup,
         &mint,
+        metadata,
         10_000,
         &spl_token_2022::id(),
     );
@@ -156,19 +167,19 @@ async fn fail_lockup_not_enough_space() {
 
 #[tokio::test]
 async fn fail_lockup_already_initialized() {
+    let mut context = setup().start_with_context().await;
+
     let lockup_authority = Keypair::new();
     let mint = Pubkey::new_unique();
-
     let token_owner = Keypair::new();
     let token_account = get_associated_token_address_with_program_id(
         &token_owner.pubkey(),
         &mint,
         &spl_token_2022::id(),
     );
-
     let lockup = Pubkey::new_unique();
+    let metadata = Pubkey::new_unique();
 
-    let mut context = setup().start_with_context().await;
     setup_token_account(
         &mut context,
         &token_account,
@@ -177,6 +188,10 @@ async fn fail_lockup_already_initialized() {
         10_000,
     )
     .await;
+
+    // Create the lockup pool account.
+    let pool = Pubkey::new_unique();
+    setup_lockup_pool(&mut context, &pool).await;
 
     // Create the lockup account with initialized state.
     {
@@ -201,8 +216,10 @@ async fn fail_lockup_already_initialized() {
         &lockup_authority.pubkey(),
         &token_owner.pubkey(),
         &token_account,
+        pool,
         &lockup,
         &mint,
+        metadata,
         10_000,
         &spl_token_2022::id(),
     );
@@ -229,19 +246,23 @@ async fn fail_lockup_already_initialized() {
 
 #[tokio::test]
 async fn fail_incorrect_escrow_authority_address() {
+    let mut context = setup().start_with_context().await;
+
     let lockup_authority = Keypair::new();
     let mint = Pubkey::new_unique();
-
     let token_owner = Keypair::new();
     let token_account = get_associated_token_address_with_program_id(
         &token_owner.pubkey(),
         &mint,
         &spl_token_2022::id(),
     );
-
     let lockup = Pubkey::new_unique();
+    let metadata = Pubkey::new_unique();
 
-    let mut context = setup().start_with_context().await;
+    // Create the lockup pool account.
+    let pool = Pubkey::new_unique();
+    setup_lockup_pool(&mut context, &pool).await;
+
     setup_token_account(
         &mut context,
         &token_account,
@@ -267,12 +288,14 @@ async fn fail_incorrect_escrow_authority_address() {
         &lockup_authority.pubkey(),
         &token_owner.pubkey(),
         &token_account,
+        pool,
         &lockup,
         &mint,
+        metadata,
         10_000,
         &spl_token_2022::id(),
     );
-    instruction.accounts[4].pubkey = Pubkey::new_unique(); // Incorrect escrow authority address.
+    instruction.accounts[5].pubkey = Pubkey::new_unique(); // Incorrect escrow authority address.
 
     let transaction = Transaction::new_signed_with_payer(
         &[instruction],
@@ -299,19 +322,23 @@ async fn fail_incorrect_escrow_authority_address() {
 
 #[tokio::test]
 async fn fail_incorrect_escrow_token_account_address() {
+    let mut context = setup().start_with_context().await;
+
     let lockup_authority = Keypair::new();
     let mint = Pubkey::new_unique();
-
     let token_owner = Keypair::new();
     let token_account = get_associated_token_address_with_program_id(
         &token_owner.pubkey(),
         &mint,
         &spl_token_2022::id(),
     );
-
     let lockup = Pubkey::new_unique();
+    let metadata = Pubkey::new_unique();
 
-    let mut context = setup().start_with_context().await;
+    // Create the lockup pool account.
+    let pool = Pubkey::new_unique();
+    setup_lockup_pool(&mut context, &pool).await;
+
     setup_token_account(
         &mut context,
         &token_account,
@@ -337,12 +364,14 @@ async fn fail_incorrect_escrow_token_account_address() {
         &lockup_authority.pubkey(),
         &token_owner.pubkey(),
         &token_account,
+        pool,
         &lockup,
         &mint,
+        metadata,
         10_000,
         &spl_token_2022::id(),
     );
-    instruction.accounts[5].pubkey = Pubkey::new_unique(); // Incorrect escrow token account address.
+    instruction.accounts[6].pubkey = Pubkey::new_unique(); // Incorrect escrow token account address.
 
     let transaction = Transaction::new_signed_with_payer(
         &[instruction],
@@ -409,6 +438,7 @@ async fn success(amount: u64) {
     );
 
     let lockup = Pubkey::new_unique();
+    let metadata = Pubkey::new_unique();
 
     let mut context = setup().start_with_context().await;
     setup_token_account(
@@ -429,6 +459,10 @@ async fn success(amount: u64) {
     .await;
     setup_mint(&mut context, &mint, &Pubkey::new_unique(), 1_000_000).await;
 
+    // Create the lockup pool account.
+    let pool = Pubkey::new_unique();
+    setup_lockup_pool(&mut context, &pool).await;
+
     // Set up the lockup account correctly.
     {
         let rent = context.banks_client.get_rent().await.unwrap();
@@ -445,8 +479,10 @@ async fn success(amount: u64) {
         &lockup_authority.pubkey(),
         &token_owner.pubkey(),
         &token_account,
+        pool,
         &lockup,
         &mint,
+        metadata,
         amount,
         &spl_token_2022::id(),
     );
@@ -476,12 +512,16 @@ async fn success(amount: u64) {
         .unwrap();
     assert_eq!(
         bytemuck::from_bytes::<Lockup>(&lockup_account.data),
-        &Lockup::new(
+        &Lockup {
+            discriminator: Lockup::SPL_DISCRIMINATOR.into(),
             amount,
-            &lockup_authority.pubkey(),
-            clock.unix_timestamp as u64,
-            &mint,
-        )
+            authority: lockup_authority.pubkey(),
+            lockup_start_timestamp: clock.unix_timestamp as u64,
+            lockup_end_timestamp: None,
+            mint,
+            pool,
+            metadata,
+        },
     );
 
     // Validate tokens were transferred from the token account to the escrow.
