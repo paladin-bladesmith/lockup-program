@@ -23,8 +23,27 @@ use {
     spl_associated_token_account::get_associated_token_address_with_program_id,
     spl_discriminator::{ArrayDiscriminator, SplDiscriminate},
     spl_token_2022::{extension::StateWithExtensions, state::Mint},
-    std::num::NonZeroU64,
+    std::{cmp::Reverse, num::NonZeroU64},
 };
+
+/// Processes a
+/// [InitializeLockupPool](enum.PaladinInitializeLockupPoolInstruction.html)
+/// instruction.
+fn process_initialize_lockup_pool(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
+    let accounts_iter = &mut accounts.iter();
+    let lockup_pool_info = next_account_info(accounts_iter)?;
+
+    // Validate the provided account.
+    assert_eq!(lockup_pool_info.owner, program_id);
+    assert_eq!(lockup_pool_info.data_len(), LockupPool::LEN);
+
+    // Write the discriminator.
+    let mut lockup_pool_data = lockup_pool_info.data.borrow_mut();
+    let lockup_pool_state = bytemuck::from_bytes_mut::<LockupPool>(&mut lockup_pool_data);
+    lockup_pool_state.discriminator = LockupPool::SPL_DISCRIMINATOR.into();
+
+    Ok(())
+}
 
 /// Processes a
 /// [Lockup](enum.PaladinLockupInstruction.html)
@@ -49,7 +68,7 @@ fn process_lockup(
 
     // Validate & deserialize the lockup pool.
     assert_eq!(
-        lockup_pool_info.key, program_id,
+        lockup_pool_info.owner, program_id,
         "lockup_pool invalid owner"
     );
     assert_eq!(
@@ -122,22 +141,28 @@ fn process_lockup(
     ) {
         (true, true) => todo!("Evict last"),
         (true, false) => return Err(PaladinLockupError::AmountTooLow.into()),
-        (false, _) => {}
+        (false, _) => {
+            lockup_pool_state.entries_len = lockup_pool_state.entries_len.checked_add(1).unwrap()
+        }
     }
 
     // Binary search & insert the entry.
+    solana_program::msg!("0");
     let index = match lockup_pool_state
         .entries
-        .binary_search_by_key(&amount, |entry| entry.amount)
+        .binary_search_by_key(&Reverse(amount), |entry| Reverse(entry.amount))
     {
         Ok(index) => index,
         Err(index) => index,
     };
+    solana_program::msg!("1");
     *lockup_pool_state.entries.last_mut().unwrap() = LockupPoolEntry {
         lockup: *lockup_info.key,
         amount,
     };
+    solana_program::msg!("2");
     lockup_pool_state.entries[index..].rotate_right(1);
+    solana_program::msg!("3");
 
     // Transfer the tokens to the escrow token account.
     {
@@ -175,7 +200,7 @@ fn process_unlock(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResul
 
     // Validate & deserialize the lockup pool.
     assert_eq!(
-        lockup_pool_info.key, program_id,
+        lockup_pool_info.owner, program_id,
         "lockup_pool invalid owner"
     );
     assert_eq!(
@@ -230,6 +255,7 @@ fn process_unlock(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResul
     {
         lockup_pool_state.entries[index] = LockupPoolEntry::default();
         lockup_pool_state.entries[index..].rotate_left(1);
+        lockup_pool_state.entries_len = lockup_pool_state.entries_len.checked_sub(1).unwrap();
     }
 
     Ok(())
@@ -366,6 +392,10 @@ fn process_withdraw(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramRes
 pub fn process(program_id: &Pubkey, accounts: &[AccountInfo], input: &[u8]) -> ProgramResult {
     let instruction = PaladinLockupInstruction::unpack(input)?;
     match instruction {
+        PaladinLockupInstruction::InitializeLockupPool => {
+            msg!("Instruction: InitializeLockupPool");
+            process_initialize_lockup_pool(program_id, accounts)
+        }
         PaladinLockupInstruction::Lockup { metadata, amount } => {
             msg!("Instruction: Lockup");
             process_lockup(program_id, accounts, metadata, amount)
