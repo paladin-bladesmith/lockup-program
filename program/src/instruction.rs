@@ -50,31 +50,37 @@ pub enum PaladinLockupInstruction {
     #[account(
         3,
         writable,
+        name = "lockup_pool",
+        description = "Lockup pool"
+    )]
+    #[account(
+        4,
+        writable,
         name = "lockup_account",
         description = "Lockup account"
     )]
     #[account(
-        4,
+        5,
         name = "escrow_authority",
         description = "Escrow authority"
     )]
     #[account(
-        5,
+        6,
         writable,
         name = "escrow_token_account",
         description = "Escrow token account"
     )]
     #[account(
-        6,
+        7,
         name = "token_mint",
         description = "Token mint"
     )]
     #[account(
-        7,
+        8,
         name = "token_program",
         description = "Token program"
     )]
-    Lockup { amount: u64 },
+    Lockup { metadata:Pubkey, amount: u64 },
     /// Unlock a token lockup, enabling the tokens for withdrawal after cooldown.
     ///
     /// Accounts expected by this instruction:
@@ -165,9 +171,10 @@ impl PaladinLockupInstruction {
     /// into a byte buffer.
     pub fn pack(&self) -> Vec<u8> {
         match self {
-            Self::Lockup { amount } => {
-                let mut buf = Vec::with_capacity(1 + 8);
+            Self::Lockup { metadata, amount } => {
+                let mut buf = Vec::with_capacity(1 + 32 + 8);
                 buf.push(0);
+                buf.extend_from_slice(&metadata.to_bytes());
                 buf.extend_from_slice(&amount.to_le_bytes());
                 buf
             }
@@ -181,8 +188,10 @@ impl PaladinLockupInstruction {
     pub fn unpack(input: &[u8]) -> Result<Self, ProgramError> {
         match input.split_first() {
             Some((&0, rest)) if rest.len() == 8 => {
-                let amount = u64::from_le_bytes(rest[..8].try_into().unwrap());
-                Ok(Self::Lockup { amount })
+                let metadata = Pubkey::new_from_array(rest[..32].try_into().unwrap());
+                let amount = u64::from_le_bytes(rest[32..40].try_into().unwrap());
+
+                Ok(Self::Lockup { metadata, amount })
             }
             Some((&1, _)) => Ok(Self::Unlock),
             Some((&2, _)) => Ok(Self::Withdraw),
@@ -201,6 +210,7 @@ pub fn lockup(
     token_account_address: &Pubkey,
     lockup_address: &Pubkey,
     mint_address: &Pubkey,
+    metadata: Pubkey,
     amount: u64,
     token_program_id: &Pubkey,
 ) -> Instruction {
@@ -220,7 +230,7 @@ pub fn lockup(
         AccountMeta::new_readonly(*mint_address, false),
         AccountMeta::new_readonly(*token_program_id, false),
     ];
-    let data = PaladinLockupInstruction::Lockup { amount }.pack();
+    let data = PaladinLockupInstruction::Lockup { metadata, amount }.pack();
     Instruction::new_with_bytes(crate::id(), &data, accounts)
 }
 
@@ -279,7 +289,10 @@ mod tests {
 
     #[test]
     fn test_pack_unpack_lockup() {
-        test_pack_unpack(PaladinLockupInstruction::Lockup { amount: 42 });
+        test_pack_unpack(PaladinLockupInstruction::Lockup {
+            metadata: Pubkey::new_unique(),
+            amount: 42,
+        });
     }
 
     #[test]

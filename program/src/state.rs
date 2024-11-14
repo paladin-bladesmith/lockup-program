@@ -29,12 +29,34 @@ pub(crate) fn collect_escrow_authority_signer_seeds(bump_seed: &[u8]) -> [&[u8];
     [SEED_PREFIX_ESCROW_AUTHORITY, bump_seed]
 }
 
+/// Lockup pool account.
+#[derive(Clone, Copy, Debug, PartialEq, Pod, ShankAccount, SplDiscriminate, Zeroable)]
+#[discriminator_hash_input("lockup::state::lockup_pool")]
+#[repr(C)]
+pub struct LockupPool {
+    pub discriminator: [u8; 8],
+    pub entries: [LockupPoolEntry; 256],
+    pub entries_len: usize,
+}
+
+impl LockupPool {
+    pub const LEN: usize = std::mem::size_of::<LockupPool>();
+}
+
+/// Lockup entry in the lockup pool.
+#[derive(Clone, Copy, Debug, PartialEq, Pod, Zeroable)]
+#[repr(C)]
+pub struct LockupPoolEntry {
+    pub lockup: Pubkey,
+    pub amount: u64,
+}
+
 /// A lockup account.
 #[derive(Clone, Copy, Debug, PartialEq, Pod, ShankAccount, SplDiscriminate, Zeroable)]
 #[discriminator_hash_input("lockup::state::lockup")]
 #[repr(C)]
 pub struct Lockup {
-    discriminator: [u8; 8],
+    pub discriminator: [u8; 8],
     /// Amount of tokens locked up in the escrow.
     pub amount: u64,
     /// The lockup's authority.
@@ -45,28 +67,16 @@ pub struct Lockup {
     pub lockup_end_timestamp: Option<NonZeroU64>,
     /// The address of the mint this lockup supports.
     pub mint: Pubkey,
+    /// The pool this lockup participates in.
+    ///
+    /// # Note
+    ///
+    /// Pools enable storing top lockups for easy off-chain lookup.
+    pub pool: Pubkey,
     /// Address of any additional metadata (stored in another account).
     pub metadata: Pubkey,
 }
 
 impl Lockup {
     pub const LEN: usize = std::mem::size_of::<Lockup>();
-
-    /// Create a new lockup account.
-    pub fn new(
-        amount: u64,
-        authority: &Pubkey,
-        lockup_start_timestamp: u64,
-        mint: &Pubkey,
-    ) -> Self {
-        Self {
-            discriminator: Self::SPL_DISCRIMINATOR.into(),
-            amount,
-            authority: *authority,
-            lockup_start_timestamp,
-            lockup_end_timestamp: None,
-            mint: *mint,
-            metadata: Pubkey::default(),
-        }
-    }
 }
