@@ -170,7 +170,21 @@ fn process_unlock(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResul
     let accounts_iter = &mut accounts.iter();
 
     let lockup_authority_info = next_account_info(accounts_iter)?;
+    let lockup_pool_info = next_account_info(accounts_iter)?;
     let lockup_info = next_account_info(accounts_iter)?;
+
+    // Validate & deserialize the lockup pool.
+    assert_eq!(
+        lockup_pool_info.key, program_id,
+        "lockup_pool invalid owner"
+    );
+    assert_eq!(
+        lockup_pool_info.data_len(),
+        LockupPool::LEN,
+        "lockup_pool uninitialized"
+    );
+    let mut lockup_pool_data = lockup_pool_info.data.borrow_mut();
+    let lockup_pool_state = bytemuck::from_bytes_mut::<LockupPool>(&mut lockup_pool_data);
 
     // Ensure the lockup authority is a signer.
     if !lockup_authority_info.is_signer {
@@ -207,6 +221,16 @@ fn process_unlock(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResul
     // timestamp of the lockup, effectively unlocking the funds.
     let clock = <Clock as Sysvar>::get()?;
     state.lockup_end_timestamp = NonZeroU64::new(clock.unix_timestamp as u64);
+
+    // Remove the entry from the pool (if it exists).
+    if let Some(index) = lockup_pool_state
+        .entries
+        .iter()
+        .position(|entry| &entry.lockup == lockup_info.key)
+    {
+        lockup_pool_state.entries[index] = LockupPoolEntry::default();
+        lockup_pool_state.entries[index..].rotate_left(1);
+    }
 
     Ok(())
 }

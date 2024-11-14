@@ -44,7 +44,7 @@ impl LockupPool {
 }
 
 /// Lockup entry in the lockup pool.
-#[derive(Clone, Copy, Debug, PartialEq, Pod, Zeroable)]
+#[derive(Default, Clone, Copy, Debug, PartialEq, Pod, Zeroable)]
 #[repr(C)]
 pub struct LockupPoolEntry {
     pub lockup: Pubkey,

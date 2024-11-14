@@ -25,11 +25,12 @@ pub enum PaladinLockupInstruction {
     /// 0. `[ ]` Lockup authority.
     /// 1. `[s]` Token owner.
     /// 2. `[w]` Depositor token account.
-    /// 3. `[w]` Lockup account.
-    /// 4. `[ ]` Escrow authority.
-    /// 5. `[w]` Escrow token account.
-    /// 6. `[ ]` Token mint.
-    /// 7. `[ ]` Token program.
+    /// 3. `[w]` Lockup pool account.
+    /// 4. `[w]` Lockup account.
+    /// 5. `[ ]` Escrow authority.
+    /// 6. `[w]` Escrow token account.
+    /// 7. `[ ]` Token mint.
+    /// 8. `[ ]` Token program.
     #[account(
         0,
         name = "lockup_authority",
@@ -86,7 +87,8 @@ pub enum PaladinLockupInstruction {
     /// Accounts expected by this instruction:
     ///
     /// 0. `[s]` Lockup authority.
-    /// 1. `[w]` Lockup account.
+    /// 1. `[w]` Lockup pool account.
+    /// 2. `[w]` Lockup account.
     #[account(
         0,
         signer,
@@ -95,6 +97,12 @@ pub enum PaladinLockupInstruction {
     )]
     #[account(
         1,
+        writable,
+        name = "lockup_pool",
+        description = "Lockup pool"
+    )]
+    #[account(
+        2,
         writable,
         name = "lockup_account",
         description = "Lockup account"
