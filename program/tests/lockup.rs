@@ -5,7 +5,7 @@ mod setup;
 use {
     paladin_lockup_program::{
         error::PaladinLockupError,
-        state::{get_escrow_authority_address, Lockup},
+        state::{get_escrow_authority_address, Lockup, LockupPool},
     },
     setup::{setup, setup_lockup_pool, setup_mint, setup_token_account},
     solana_program_test::*,
@@ -532,4 +532,108 @@ async fn success(amount: u64) {
     )
     .await;
     check_token_account_balance(&mut context, &escrow_token_account, amount).await;
+}
+
+#[tokio::test]
+async fn lockup_pool_scenarios() {
+    let mut context = setup().start_with_context().await;
+
+    let lockup_authority = Keypair::new();
+    let mint = Pubkey::new_unique();
+    let token_owner = Keypair::new();
+    let token_account = get_associated_token_address_with_program_id(
+        &token_owner.pubkey(),
+        &mint,
+        &spl_token_2022::id(),
+    );
+    let metadata = Pubkey::new_unique();
+
+    // Create the lockup pool account.
+    let pool = Pubkey::new_unique();
+    setup_lockup_pool(&mut context, &pool).await;
+
+    // Create the token account.
+    let token_amount =
+        ((LockupPool::LOCKUP_CAPACITY * (LockupPool::LOCKUP_CAPACITY + 1)) / 2) as u64;
+    setup_mint(&mut context, &mint, &Pubkey::new_unique(), token_amount).await;
+    setup_token_account(
+        &mut context,
+        &token_account,
+        &token_owner.pubkey(),
+        &mint,
+        token_amount,
+    )
+    .await;
+    let escrow_authority = get_escrow_authority_address(&paladin_lockup_program::id());
+    let escrow_token_account = get_associated_token_address_with_program_id(
+        &escrow_authority,
+        &mint,
+        &spl_token_2022::id(),
+    );
+    setup_token_account(
+        &mut context,
+        &escrow_token_account,
+        &escrow_authority,
+        &mint,
+        0,
+    )
+    .await;
+
+    // Setup max lockup accounts.
+    let mut lockups = [Pubkey::default(); 256];
+    for i in 0..LockupPool::LOCKUP_CAPACITY {
+        let lockup = Pubkey::new_unique();
+        lockups[i] = lockup;
+
+        // Setup native account.
+        let rent = context.banks_client.get_rent().await.unwrap();
+        let space = std::mem::size_of::<Lockup>();
+        let lamports = rent.minimum_balance(space);
+        context.set_account(
+            &lockup,
+            &AccountSharedData::new(lamports, space, &paladin_lockup_program::id()),
+        );
+
+        // Initialize the lockup.
+        let instruction = paladin_lockup_program::instruction::lockup(
+            &lockup_authority.pubkey(),
+            &token_owner.pubkey(),
+            &token_account,
+            pool,
+            &lockup,
+            &mint,
+            metadata,
+            (i + 1) as u64,
+            &spl_token_2022::id(),
+        );
+        let transaction = Transaction::new_signed_with_payer(
+            &[instruction],
+            Some(&context.payer.pubkey()),
+            &[&context.payer, &token_owner],
+            context.last_blockhash,
+        );
+        let _ = context.get_new_latest_blockhash().await.unwrap();
+        context
+            .banks_client
+            .process_transaction(transaction)
+            .await
+            .unwrap();
+    }
+
+    // Sanity - Check lockup accounts are as expected.
+    let lockup_pool = context
+        .banks_client
+        .get_account(pool)
+        .await
+        .unwrap()
+        .unwrap();
+    let lockup_pool = bytemuck::from_bytes::<LockupPool>(&lockup_pool.data);
+    for (i, lockup) in lockups.iter().rev().enumerate() {
+        println!("{i}: {lockup} {:?}", lockup_pool.entries[i]);
+
+        assert_eq!(&lockup_pool.entries[i].lockup, lockup);
+        assert_eq!(lockup_pool.entries[i].amount, (256 - i) as u64);
+    }
+
+    todo!();
 }

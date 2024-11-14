@@ -41,6 +41,11 @@ pub struct LockupPool {
 
 impl LockupPool {
     pub const LEN: usize = std::mem::size_of::<LockupPool>();
+    pub const LOCKUP_CAPACITY: usize = 256;
+
+    const _ASSERT_LOCKUP_CAPACITY: () = assert!(
+        Self::LOCKUP_CAPACITY * std::mem::size_of::<LockupPoolEntry>() + 8 + 8 == Self::LEN
+    );
 }
 
 /// Lockup entry in the lockup pool.
