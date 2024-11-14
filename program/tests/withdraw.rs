@@ -8,7 +8,10 @@ use {
         state::{get_escrow_authority_address, Lockup},
         LOCKUP_COOLDOWN_SECONDS,
     },
-    setup::{add_seconds_to_clock, setup, setup_lockup, setup_mint, setup_token_account},
+    setup::{
+        add_seconds_to_clock, setup, setup_lockup, setup_lockup_pool, setup_mint,
+        setup_token_account,
+    },
     solana_program_test::*,
     solana_sdk::{
         account::{Account, AccountSharedData},
@@ -20,6 +23,7 @@ use {
         transaction::{Transaction, TransactionError},
     },
     spl_associated_token_account::get_associated_token_address_with_program_id,
+    spl_discriminator::SplDiscriminate,
     spl_token_2022::{extension::StateWithExtensions, state::Account as TokenAccount},
     std::num::NonZeroU64,
 };
@@ -272,8 +276,11 @@ async fn fail_incorrect_escrow_authority_address() {
     let lockup = Pubkey::new_unique();
 
     let mut context = setup().start_with_context().await;
-
     let clock = context.banks_client.get_sysvar::<Clock>().await.unwrap();
+
+    // Create the lockup pool account.
+    let pool = Pubkey::new_unique();
+    setup_lockup_pool(&mut context, &pool).await;
 
     setup_token_account(
         &mut context,
@@ -286,11 +293,16 @@ async fn fail_incorrect_escrow_authority_address() {
     setup_lockup(
         &mut context,
         &lockup,
-        &authority.pubkey(),
-        10_000,
-        clock.unix_timestamp as u64,
-        NonZeroU64::new(clock.unix_timestamp as u64), // Now (unlocked).
-        &mint,
+        Lockup {
+            discriminator: Lockup::SPL_DISCRIMINATOR.into(),
+            amount: 10_000,
+            authority: authority.pubkey(),
+            lockup_start_timestamp: clock.unix_timestamp as u64,
+            lockup_end_timestamp: NonZeroU64::new(clock.unix_timestamp as u64), // Unlocked.
+            mint,
+            pool,
+            metadata: Pubkey::new_unique(),
+        },
     )
     .await;
     add_seconds_to_clock(&mut context, LOCKUP_COOLDOWN_SECONDS).await;
@@ -345,6 +357,10 @@ async fn fail_incorrect_escrow_token_account_address() {
 
     let clock = context.banks_client.get_sysvar::<Clock>().await.unwrap();
 
+    // Create the lockup pool account.
+    let pool = Pubkey::new_unique();
+    setup_lockup_pool(&mut context, &pool).await;
+
     setup_token_account(
         &mut context,
         &token_account,
@@ -356,11 +372,16 @@ async fn fail_incorrect_escrow_token_account_address() {
     setup_lockup(
         &mut context,
         &lockup,
-        &authority.pubkey(),
-        10_000,
-        clock.unix_timestamp as u64,
-        NonZeroU64::new(clock.unix_timestamp as u64), // Now (unlocked).
-        &mint,
+        Lockup {
+            discriminator: Lockup::SPL_DISCRIMINATOR.into(),
+            amount: 10_000,
+            authority: authority.pubkey(),
+            lockup_start_timestamp: clock.unix_timestamp as u64,
+            lockup_end_timestamp: NonZeroU64::new(clock.unix_timestamp as u64), // Unlocked.
+            mint,
+            pool,
+            metadata: Pubkey::new_unique(),
+        },
     )
     .await;
     add_seconds_to_clock(&mut context, LOCKUP_COOLDOWN_SECONDS).await;
@@ -415,6 +436,10 @@ async fn fail_lockup_still_active() {
 
     let clock = context.banks_client.get_sysvar::<Clock>().await.unwrap();
 
+    // Create the lockup pool account.
+    let pool = Pubkey::new_unique();
+    setup_lockup_pool(&mut context, &pool).await;
+
     setup_token_account(
         &mut context,
         &token_account,
@@ -426,15 +451,20 @@ async fn fail_lockup_still_active() {
     setup_lockup(
         &mut context,
         &lockup,
-        &authority.pubkey(),
-        10_000,
-        clock.unix_timestamp as u64,
-        NonZeroU64::new(clock.unix_timestamp as u64),
-        &mint,
+        Lockup {
+            discriminator: Lockup::SPL_DISCRIMINATOR.into(),
+            amount: 10_000,
+            authority: authority.pubkey(),
+            lockup_start_timestamp: clock.unix_timestamp as u64,
+            lockup_end_timestamp: NonZeroU64::new(clock.unix_timestamp as u64), // Unlocked.
+            mint,
+            pool,
+            metadata: Pubkey::new_unique(),
+        },
     )
     .await;
-    // Don't advance clock, still locked
 
+    // Don't advance clock, still locked
     let instruction = paladin_lockup_program::instruction::withdraw(
         &authority.pubkey(),
         &token_account,
@@ -484,6 +514,10 @@ async fn fail_incorrect_lockup_authority() {
 
     let clock = context.banks_client.get_sysvar::<Clock>().await.unwrap();
 
+    // Create the lockup pool account.
+    let pool = Pubkey::new_unique();
+    setup_lockup_pool(&mut context, &pool).await;
+
     setup_token_account(
         &mut context,
         &token_account,
@@ -495,11 +529,16 @@ async fn fail_incorrect_lockup_authority() {
     setup_lockup(
         &mut context,
         &lockup,
-        &Pubkey::new_unique(), // Incorrect authority.
-        10_000,
-        clock.unix_timestamp as u64,
-        NonZeroU64::new(clock.unix_timestamp as u64),
-        &mint,
+        Lockup {
+            discriminator: Lockup::SPL_DISCRIMINATOR.into(),
+            amount: 10_000,
+            authority: Pubkey::new_unique(), // Incorrect authority.
+            lockup_start_timestamp: clock.unix_timestamp as u64,
+            lockup_end_timestamp: NonZeroU64::new(clock.unix_timestamp as u64), // Unlocked.
+            mint,
+            pool,
+            metadata: Pubkey::new_unique(),
+        },
     )
     .await;
     add_seconds_to_clock(&mut context, LOCKUP_COOLDOWN_SECONDS).await;
@@ -550,6 +589,10 @@ async fn fail_incorrect_mint() {
 
     let clock = context.banks_client.get_sysvar::<Clock>().await.unwrap();
 
+    // Create the lockup pool account.
+    let pool = Pubkey::new_unique();
+    setup_lockup_pool(&mut context, &pool).await;
+
     setup_token_account(
         &mut context,
         &token_account,
@@ -561,11 +604,16 @@ async fn fail_incorrect_mint() {
     setup_lockup(
         &mut context,
         &lockup,
-        &authority.pubkey(),
-        10_000,
-        clock.unix_timestamp as u64,
-        NonZeroU64::new(clock.unix_timestamp as u64),
-        &Pubkey::new_unique(), // Incorrect mint.
+        Lockup {
+            discriminator: Lockup::SPL_DISCRIMINATOR.into(),
+            amount: 10_000,
+            authority: authority.pubkey(),
+            lockup_start_timestamp: clock.unix_timestamp as u64,
+            lockup_end_timestamp: NonZeroU64::new(clock.unix_timestamp as u64), // Unlocked.
+            mint: Pubkey::new_unique(),                                         // Incorrect mint.
+            pool,
+            metadata: Pubkey::new_unique(),
+        },
     )
     .await;
     add_seconds_to_clock(&mut context, LOCKUP_COOLDOWN_SECONDS).await;
@@ -635,17 +683,25 @@ async fn success() {
     let lockup_amount = 10_000;
 
     let mut context = setup().start_with_context().await;
-
     let clock = context.banks_client.get_sysvar::<Clock>().await.unwrap();
+
+    // Create the lockup pool account.
+    let pool = Pubkey::new_unique();
+    setup_lockup_pool(&mut context, &pool).await;
 
     setup_lockup(
         &mut context,
         &lockup,
-        &authority.pubkey(),
-        lockup_amount,
-        clock.unix_timestamp as u64,
-        NonZeroU64::new(clock.unix_timestamp as u64), // Now (unlocked).
-        &mint,
+        Lockup {
+            discriminator: Lockup::SPL_DISCRIMINATOR.into(),
+            amount: 10_000,
+            authority: authority.pubkey(),
+            lockup_start_timestamp: clock.unix_timestamp as u64,
+            lockup_end_timestamp: NonZeroU64::new(clock.unix_timestamp as u64), // Unlocked.
+            mint,
+            pool,
+            metadata: Pubkey::new_unique(),
+        },
     )
     .await;
     add_seconds_to_clock(&mut context, LOCKUP_COOLDOWN_SECONDS).await;
