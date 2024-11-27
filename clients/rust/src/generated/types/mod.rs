@@ -5,7 +5,7 @@
 //! <https://github.com/kinobi-so/kinobi>
 //!
 
-      pub(crate) mod paladin_lockup;
-  
-      pub use self::paladin_lockup::PaladinLockupError;
-  
+  pub(crate) mod r#lockup_pool_entry;
+
+  pub use self::r#lockup_pool_entry::*;
+

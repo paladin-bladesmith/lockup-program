@@ -123,3 +123,7 @@ export async function fetchAllMaybeLockupPool(
   const maybeAccounts = await fetchEncodedAccounts(rpc, addresses, config);
   return maybeAccounts.map((maybeAccount) => decodeLockupPool(maybeAccount));
 }
+
+export function getLockupPoolSize(): number {
+  return 10256;
+}

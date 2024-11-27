@@ -1,6 +1,6 @@
 use {
     bytemuck::{Pod, Zeroable},
-    shank::ShankAccount,
+    shank::{ShankAccount, ShankType},
     solana_program::pubkey::Pubkey,
     spl_discriminator::SplDiscriminate,
     std::num::NonZeroU64,
@@ -49,7 +49,7 @@ impl LockupPool {
 }
 
 /// Lockup entry in the lockup pool.
-#[derive(Default, Clone, Copy, Debug, PartialEq, Pod, Zeroable)]
+#[derive(Default, Clone, Copy, Debug, PartialEq, ShankType, Pod, Zeroable)]
 #[repr(C)]
 pub struct LockupPoolEntry {
     pub lockup: Pubkey,

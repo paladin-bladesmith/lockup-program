@@ -3,8 +3,10 @@
 //! to add features, then rerun kinobi to update it.
 //!
 //! <https://github.com/kinobi-so/kinobi>
+//!
 
-use {num_derive::FromPrimitive, thiserror::Error};
+use num_derive::FromPrimitive;
+use thiserror::Error;
 
 #[derive(Clone, Debug, Eq, Error, FromPrimitive, PartialEq)]
 pub enum PaladinLockupError {
@@ -33,3 +35,4 @@ impl solana_program::program_error::PrintProgramError for PaladinLockupError {
         solana_program::msg!(&self.to_string());
     }
 }
+

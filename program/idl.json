@@ -303,6 +303,24 @@
       }
     }
   ],
+  "types": [
+    {
+      "name": "LockupPoolEntry",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "lockup",
+            "type": "publicKey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      }
+    }
+  ],
   "errors": [
     {
       "code": 0,
