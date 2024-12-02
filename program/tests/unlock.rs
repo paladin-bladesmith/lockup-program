@@ -4,7 +4,7 @@ mod setup;
 
 use {
     paladin_lockup_program::{error::PaladinLockupError, state::Lockup},
-    setup::{setup, setup_lockup},
+    setup::{setup, setup_lockup, setup_lockup_pool},
     solana_program_test::*,
     solana_sdk::{
         account::AccountSharedData,
@@ -15,17 +15,23 @@ use {
         signer::Signer,
         transaction::{Transaction, TransactionError},
     },
+    spl_discriminator::SplDiscriminate,
     std::num::NonZeroU64,
 };
 
 #[tokio::test]
 async fn fail_lockup_authority_not_signer() {
+    let mut context = setup().start_with_context().await;
+
     let authority = Keypair::new();
     let lockup = Pubkey::new_unique();
 
-    let mut context = setup().start_with_context().await;
+    // Create the lockup pool account.
+    let pool = Pubkey::new_unique();
+    setup_lockup_pool(&mut context, &pool).await;
 
-    let mut instruction = paladin_lockup_program::instruction::unlock(&authority.pubkey(), &lockup);
+    let mut instruction =
+        paladin_lockup_program::instruction::unlock(&authority.pubkey(), pool, &lockup);
     instruction.accounts[0].is_signer = false;
 
     let transaction = Transaction::new_signed_with_payer(
@@ -50,10 +56,14 @@ async fn fail_lockup_authority_not_signer() {
 
 #[tokio::test]
 async fn fail_lockup_not_enough_space() {
+    let mut context = setup().start_with_context().await;
+
     let authority = Keypair::new();
     let lockup = Pubkey::new_unique();
 
-    let mut context = setup().start_with_context().await;
+    // Create the lockup pool account.
+    let pool = Pubkey::new_unique();
+    setup_lockup_pool(&mut context, &pool).await;
 
     // Create the lockup account with not enough space.
     {
@@ -66,7 +76,8 @@ async fn fail_lockup_not_enough_space() {
         );
     }
 
-    let instruction = paladin_lockup_program::instruction::unlock(&authority.pubkey(), &lockup);
+    let instruction =
+        paladin_lockup_program::instruction::unlock(&authority.pubkey(), pool, &lockup);
 
     let transaction = Transaction::new_signed_with_payer(
         &[instruction],
@@ -90,10 +101,14 @@ async fn fail_lockup_not_enough_space() {
 
 #[tokio::test]
 async fn fail_lockup_uninitialized() {
+    let mut context = setup().start_with_context().await;
+
     let authority = Keypair::new();
     let lockup = Pubkey::new_unique();
 
-    let mut context = setup().start_with_context().await;
+    // Create the lockup pool account.
+    let pool = Pubkey::new_unique();
+    setup_lockup_pool(&mut context, &pool).await;
 
     // Create the lockup account with uninitialized state.
     {
@@ -106,7 +121,8 @@ async fn fail_lockup_uninitialized() {
         );
     }
 
-    let instruction = paladin_lockup_program::instruction::unlock(&authority.pubkey(), &lockup);
+    let instruction =
+        paladin_lockup_program::instruction::unlock(&authority.pubkey(), pool, &lockup);
 
     let transaction = Transaction::new_signed_with_payer(
         &[instruction],
@@ -130,22 +146,33 @@ async fn fail_lockup_uninitialized() {
 
 #[tokio::test]
 async fn fail_incorrect_lockup_authority() {
+    let mut context = setup().start_with_context().await;
+
     let authority = Keypair::new();
     let lockup = Pubkey::new_unique();
 
-    let mut context = setup().start_with_context().await;
+    // Create the lockup pool account.
+    let pool = Pubkey::new_unique();
+    setup_lockup_pool(&mut context, &pool).await;
+
     setup_lockup(
         &mut context,
         &lockup,
-        &Pubkey::new_unique(), // Incorrect authority.
-        10_000,
-        10_000,
-        None,
-        &Pubkey::new_unique(),
+        Lockup {
+            discriminator: Lockup::SPL_DISCRIMINATOR.into(),
+            amount: 10_000,
+            authority: Pubkey::new_unique(), // Incorrect authority.
+            lockup_start_timestamp: 10_000,
+            lockup_end_timestamp: None,
+            mint: Pubkey::new_unique(),
+            pool,
+            metadata: Pubkey::new_unique(),
+        },
     )
     .await;
 
-    let instruction = paladin_lockup_program::instruction::unlock(&authority.pubkey(), &lockup);
+    let instruction =
+        paladin_lockup_program::instruction::unlock(&authority.pubkey(), pool, &lockup);
 
     let transaction = Transaction::new_signed_with_payer(
         &[instruction],
@@ -169,10 +196,14 @@ async fn fail_incorrect_lockup_authority() {
 
 #[tokio::test]
 async fn fail_lockup_already_unlocked() {
+    let mut context = setup().start_with_context().await;
+
     let authority = Keypair::new();
     let lockup = Pubkey::new_unique();
 
-    let mut context = setup().start_with_context().await;
+    // Create the lockup pool account.
+    let pool = Pubkey::new_unique();
+    setup_lockup_pool(&mut context, &pool).await;
 
     // Actual timestamp doesn't matter for this test.
     let start = 100_000u64;
@@ -181,15 +212,21 @@ async fn fail_lockup_already_unlocked() {
     setup_lockup(
         &mut context,
         &lockup,
-        &authority.pubkey(),
-        10_000, // Amount (unused here).
-        start,
-        NonZeroU64::new(end), // Already unlocked.
-        &Pubkey::new_unique(),
+        Lockup {
+            discriminator: Lockup::SPL_DISCRIMINATOR.into(),
+            amount: 10_000,
+            authority: authority.pubkey(),
+            lockup_start_timestamp: start,
+            lockup_end_timestamp: NonZeroU64::new(end),
+            mint: Pubkey::new_unique(),
+            pool,
+            metadata: Pubkey::new_unique(),
+        },
     )
     .await;
 
-    let instruction = paladin_lockup_program::instruction::unlock(&authority.pubkey(), &lockup);
+    let instruction =
+        paladin_lockup_program::instruction::unlock(&authority.pubkey(), pool, &lockup);
 
     let transaction = Transaction::new_signed_with_payer(
         &[instruction],
@@ -216,26 +253,35 @@ async fn fail_lockup_already_unlocked() {
 
 #[tokio::test]
 async fn success() {
-    let authority = Keypair::new();
-    let lockup = Pubkey::new_unique();
-
     let mut context = setup().start_with_context().await;
 
+    let authority = Keypair::new();
+    let lockup = Pubkey::new_unique();
     let clock = context.banks_client.get_sysvar::<Clock>().await.unwrap();
     let start = clock.unix_timestamp as u64;
+
+    // Create the lockup pool account.
+    let pool = Pubkey::new_unique();
+    setup_lockup_pool(&mut context, &pool).await;
 
     setup_lockup(
         &mut context,
         &lockup,
-        &authority.pubkey(),
-        10_000, // Amount (unused here).
-        start,
-        None,
-        &Pubkey::new_unique(),
+        Lockup {
+            discriminator: Lockup::SPL_DISCRIMINATOR.into(),
+            amount: 10_000,
+            authority: authority.pubkey(),
+            lockup_start_timestamp: start,
+            lockup_end_timestamp: None,
+            mint: Pubkey::new_unique(),
+            pool,
+            metadata: Pubkey::new_unique(),
+        },
     )
     .await;
 
-    let instruction = paladin_lockup_program::instruction::unlock(&authority.pubkey(), &lockup);
+    let instruction =
+        paladin_lockup_program::instruction::unlock(&authority.pubkey(), pool, &lockup);
 
     let transaction = Transaction::new_signed_with_payer(
         &[instruction],

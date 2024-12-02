@@ -1,5 +1,4 @@
 //! Program error types.
-
 use {
     num_derive::FromPrimitive,
     solana_program::{
@@ -29,6 +28,9 @@ pub enum PaladinLockupError {
     /// Lockup already unlocked.
     #[error("Lockup already unlocked.")]
     LockupAlreadyUnlocked,
+    /// The amount was too low to be entered into the pool.
+    #[error("Amount too low.")]
+    AmountTooLow,
 }
 
 impl PrintProgramError for PaladinLockupError {

@@ -2,7 +2,7 @@
 #![allow(dead_code)]
 
 use {
-    paladin_lockup_program::state::Lockup,
+    paladin_lockup_program::state::{Lockup, LockupPool, LockupPoolEntry},
     solana_program_test::*,
     solana_sdk::{
         account::{Account, AccountSharedData},
@@ -11,11 +11,11 @@ use {
         pubkey::Pubkey,
         system_program,
     },
+    spl_discriminator::SplDiscriminate,
     spl_token_2022::{
         extension::{BaseStateWithExtensionsMut, ExtensionType, StateWithExtensionsMut},
         state::{Account as TokenAccount, AccountState, Mint},
     },
-    std::num::NonZeroU64,
 };
 
 pub fn setup() -> ProgramTest {
@@ -114,19 +114,30 @@ pub async fn setup_system_account(
     );
 }
 
-pub async fn setup_lockup(
-    context: &mut ProgramTestContext,
-    address: &Pubkey,
-    authority: &Pubkey,
-    amount: u64,
-    lockup_start_timestamp: u64,
-    lockup_end_timestamp: Option<NonZeroU64>,
-    mint_address: &Pubkey,
-) {
-    let mut state = Lockup::new(amount, authority, lockup_start_timestamp, mint_address);
-    state.lockup_end_timestamp = lockup_end_timestamp;
+pub async fn setup_lockup_pool(context: &mut ProgramTestContext, address: &Pubkey) {
+    // Setup lockup pool account data.
+    let state = LockupPool {
+        discriminator: LockupPool::SPL_DISCRIMINATOR.into(),
+        entries: [LockupPoolEntry::default(); 1024],
+        entries_len: 0,
+    };
     let data = bytemuck::bytes_of(&state).to_vec();
+    let rent = context.banks_client.get_rent().await.unwrap();
+    let lamports = rent.minimum_balance(data.len());
 
+    context.set_account(
+        address,
+        &AccountSharedData::from(Account {
+            lamports,
+            data,
+            owner: paladin_lockup_program::id(),
+            ..Account::default()
+        }),
+    );
+}
+
+pub async fn setup_lockup(context: &mut ProgramTestContext, address: &Pubkey, state: Lockup) {
+    let data = bytemuck::bytes_of(&state).to_vec();
     let rent = context.banks_client.get_rent().await.unwrap();
     let lamports = rent.minimum_balance(data.len());
 

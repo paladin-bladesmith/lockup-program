@@ -32,6 +32,7 @@ import { getAccountMetaFactory, type ResolvedAccount } from '../shared';
 export type UnlockInstruction<
   TProgram extends string = typeof PALADIN_LOCKUP_PROGRAM_ADDRESS,
   TAccountLockupAuthority extends string | IAccountMeta<string> = string,
+  TAccountLockupPool extends string | IAccountMeta<string> = string,
   TAccountLockupAccount extends string | IAccountMeta<string> = string,
   TRemainingAccounts extends readonly IAccountMeta<string>[] = [],
 > = IInstruction<TProgram> &
@@ -42,6 +43,9 @@ export type UnlockInstruction<
         ? ReadonlySignerAccount<TAccountLockupAuthority> &
             IAccountSignerMeta<TAccountLockupAuthority>
         : TAccountLockupAuthority,
+      TAccountLockupPool extends string
+        ? WritableAccount<TAccountLockupPool>
+        : TAccountLockupPool,
       TAccountLockupAccount extends string
         ? WritableAccount<TAccountLockupAccount>
         : TAccountLockupAccount,
@@ -56,7 +60,7 @@ export type UnlockInstructionDataArgs = {};
 export function getUnlockInstructionDataEncoder(): Encoder<UnlockInstructionDataArgs> {
   return transformEncoder(
     getStructEncoder([['discriminator', getU8Encoder()]]),
-    (value) => ({ ...value, discriminator: 1 })
+    (value) => ({ ...value, discriminator: 2 })
   );
 }
 
@@ -76,22 +80,31 @@ export function getUnlockInstructionDataCodec(): Codec<
 
 export type UnlockInput<
   TAccountLockupAuthority extends string = string,
+  TAccountLockupPool extends string = string,
   TAccountLockupAccount extends string = string,
 > = {
   /** Lockup authority */
   lockupAuthority: TransactionSigner<TAccountLockupAuthority>;
+  /** Lockup pool */
+  lockupPool: Address<TAccountLockupPool>;
   /** Lockup account */
   lockupAccount: Address<TAccountLockupAccount>;
 };
 
 export function getUnlockInstruction<
   TAccountLockupAuthority extends string,
+  TAccountLockupPool extends string,
   TAccountLockupAccount extends string,
 >(
-  input: UnlockInput<TAccountLockupAuthority, TAccountLockupAccount>
+  input: UnlockInput<
+    TAccountLockupAuthority,
+    TAccountLockupPool,
+    TAccountLockupAccount
+  >
 ): UnlockInstruction<
   typeof PALADIN_LOCKUP_PROGRAM_ADDRESS,
   TAccountLockupAuthority,
+  TAccountLockupPool,
   TAccountLockupAccount
 > {
   // Program address.
@@ -103,6 +116,7 @@ export function getUnlockInstruction<
       value: input.lockupAuthority ?? null,
       isWritable: false,
     },
+    lockupPool: { value: input.lockupPool ?? null, isWritable: true },
     lockupAccount: { value: input.lockupAccount ?? null, isWritable: true },
   };
   const accounts = originalAccounts as Record<
@@ -114,6 +128,7 @@ export function getUnlockInstruction<
   const instruction = {
     accounts: [
       getAccountMeta(accounts.lockupAuthority),
+      getAccountMeta(accounts.lockupPool),
       getAccountMeta(accounts.lockupAccount),
     ],
     programAddress,
@@ -121,6 +136,7 @@ export function getUnlockInstruction<
   } as UnlockInstruction<
     typeof PALADIN_LOCKUP_PROGRAM_ADDRESS,
     TAccountLockupAuthority,
+    TAccountLockupPool,
     TAccountLockupAccount
   >;
 
@@ -135,8 +151,10 @@ export type ParsedUnlockInstruction<
   accounts: {
     /** Lockup authority */
     lockupAuthority: TAccountMetas[0];
+    /** Lockup pool */
+    lockupPool: TAccountMetas[1];
     /** Lockup account */
-    lockupAccount: TAccountMetas[1];
+    lockupAccount: TAccountMetas[2];
   };
   data: UnlockInstructionData;
 };
@@ -149,7 +167,7 @@ export function parseUnlockInstruction<
     IInstructionWithAccounts<TAccountMetas> &
     IInstructionWithData<Uint8Array>
 ): ParsedUnlockInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 2) {
+  if (instruction.accounts.length < 3) {
     // TODO: Coded error.
     throw new Error('Not enough accounts');
   }
@@ -163,6 +181,7 @@ export function parseUnlockInstruction<
     programAddress: instruction.programAddress,
     accounts: {
       lockupAuthority: getNextAccount(),
+      lockupPool: getNextAccount(),
       lockupAccount: getNextAccount(),
     },
     data: getUnlockInstructionDataDecoder().decode(instruction.data),

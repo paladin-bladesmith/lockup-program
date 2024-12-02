@@ -6,7 +6,7 @@ use {
         instruction::PaladinLockupInstruction,
         state::{
             collect_escrow_authority_signer_seeds, get_escrow_authority_address,
-            get_escrow_authority_address_and_bump_seed, Lockup,
+            get_escrow_authority_address_and_bump_seed, Lockup, LockupPool, LockupPoolEntry,
         },
         LOCKUP_COOLDOWN_SECONDS,
     },
@@ -23,23 +23,61 @@ use {
     spl_associated_token_account::get_associated_token_address_with_program_id,
     spl_discriminator::{ArrayDiscriminator, SplDiscriminate},
     spl_token_2022::{extension::StateWithExtensions, state::Mint},
-    std::num::NonZeroU64,
+    std::{cmp::Reverse, num::NonZeroU64},
 };
+
+/// Processes a
+/// [InitializeLockupPool](enum.PaladinInitializeLockupPoolInstruction.html)
+/// instruction.
+fn process_initialize_lockup_pool(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
+    let accounts_iter = &mut accounts.iter();
+    let lockup_pool_info = next_account_info(accounts_iter)?;
+
+    // Validate the provided account.
+    assert_eq!(lockup_pool_info.owner, program_id);
+    assert_eq!(lockup_pool_info.data_len(), LockupPool::LEN);
+
+    // Write the discriminator.
+    let mut lockup_pool_data = lockup_pool_info.data.borrow_mut();
+    let lockup_pool_state = bytemuck::from_bytes_mut::<LockupPool>(&mut lockup_pool_data);
+    lockup_pool_state.discriminator = LockupPool::SPL_DISCRIMINATOR.into();
+
+    Ok(())
+}
 
 /// Processes a
 /// [Lockup](enum.PaladinLockupInstruction.html)
 /// instruction.
-fn process_lockup(program_id: &Pubkey, accounts: &[AccountInfo], amount: u64) -> ProgramResult {
+fn process_lockup(
+    program_id: &Pubkey,
+    accounts: &[AccountInfo],
+    metadata: Pubkey,
+    amount: u64,
+) -> ProgramResult {
     let accounts_iter = &mut accounts.iter();
 
     let lockup_authority_info = next_account_info(accounts_iter)?;
     let token_owner_info = next_account_info(accounts_iter)?;
     let token_account_info = next_account_info(accounts_iter)?;
+    let lockup_pool_info = next_account_info(accounts_iter)?;
     let lockup_info = next_account_info(accounts_iter)?;
     let escrow_authority_info = next_account_info(accounts_iter)?;
     let escrow_token_account_info = next_account_info(accounts_iter)?;
     let mint_info = next_account_info(accounts_iter)?;
     let token_program_info = next_account_info(accounts_iter)?;
+
+    // Validate & deserialize the lockup pool.
+    assert_eq!(
+        lockup_pool_info.owner, program_id,
+        "lockup_pool invalid owner"
+    );
+    assert_eq!(
+        lockup_pool_info.data_len(),
+        LockupPool::LEN,
+        "lockup_pool uninitialized"
+    );
+    let mut lockup_pool_data = lockup_pool_info.data.borrow_mut();
+    let lockup_pool_state = bytemuck::from_bytes_mut::<LockupPool>(&mut lockup_pool_data);
 
     // Ensure the lockup account is owned by the Paladin Lockup program.
     if lockup_info.owner != program_id {
@@ -84,12 +122,47 @@ fn process_lockup(program_id: &Pubkey, accounts: &[AccountInfo], amount: u64) ->
     // Write the data.
     let mut data = lockup_info.try_borrow_mut_data()?;
     *bytemuck::try_from_bytes_mut(&mut data).map_err(|_| ProgramError::InvalidAccountData)? =
-        Lockup::new(
+        Lockup {
+            discriminator: Lockup::SPL_DISCRIMINATOR.into(),
             amount,
-            lockup_authority_info.key,
+            authority: *lockup_authority_info.key,
             lockup_start_timestamp,
-            mint_info.key,
-        );
+            lockup_end_timestamp: None,
+            mint: *mint_info.key,
+            pool: *lockup_pool_info.key,
+            metadata,
+        };
+
+    // Evict the smallest lock if necessary.
+    let last_index = std::cmp::min(
+        lockup_pool_state.entries_len,
+        LockupPool::LOCKUP_CAPACITY - 1,
+    );
+    let last_amount = lockup_pool_state.entries[last_index].amount;
+    match (
+        lockup_pool_state.entries_len == lockup_pool_state.entries.len(),
+        amount > last_amount,
+    ) {
+        (true, true) => {}
+        (true, false) => return Err(PaladinLockupError::AmountTooLow.into()),
+        (false, _) => {
+            lockup_pool_state.entries_len = lockup_pool_state.entries_len.checked_add(1).unwrap()
+        }
+    }
+
+    // Binary search & insert the entry.
+    let index = match lockup_pool_state
+        .entries
+        .binary_search_by_key(&Reverse(amount), |entry| Reverse(entry.amount))
+    {
+        Ok(index) => index,
+        Err(index) => index,
+    };
+    *lockup_pool_state.entries.last_mut().unwrap() = LockupPoolEntry {
+        lockup: *lockup_info.key,
+        amount,
+    };
+    lockup_pool_state.entries[index..].rotate_right(1);
 
     // Transfer the tokens to the escrow token account.
     {
@@ -122,7 +195,21 @@ fn process_unlock(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResul
     let accounts_iter = &mut accounts.iter();
 
     let lockup_authority_info = next_account_info(accounts_iter)?;
+    let lockup_pool_info = next_account_info(accounts_iter)?;
     let lockup_info = next_account_info(accounts_iter)?;
+
+    // Validate & deserialize the lockup pool.
+    assert_eq!(
+        lockup_pool_info.owner, program_id,
+        "lockup_pool invalid owner"
+    );
+    assert_eq!(
+        lockup_pool_info.data_len(),
+        LockupPool::LEN,
+        "lockup_pool uninitialized"
+    );
+    let mut lockup_pool_data = lockup_pool_info.data.borrow_mut();
+    let lockup_pool_state = bytemuck::from_bytes_mut::<LockupPool>(&mut lockup_pool_data);
 
     // Ensure the lockup authority is a signer.
     if !lockup_authority_info.is_signer {
@@ -159,6 +246,17 @@ fn process_unlock(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResul
     // timestamp of the lockup, effectively unlocking the funds.
     let clock = <Clock as Sysvar>::get()?;
     state.lockup_end_timestamp = NonZeroU64::new(clock.unix_timestamp as u64);
+
+    // Remove the entry from the pool (if it exists).
+    if let Some(index) = lockup_pool_state
+        .entries
+        .iter()
+        .position(|entry| &entry.lockup == lockup_info.key)
+    {
+        lockup_pool_state.entries[index] = LockupPoolEntry::default();
+        lockup_pool_state.entries[index..].rotate_left(1);
+        lockup_pool_state.entries_len = lockup_pool_state.entries_len.checked_sub(1).unwrap();
+    }
 
     Ok(())
 }
@@ -255,7 +353,6 @@ fn process_withdraw(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramRes
     {
         let bump_seed = [bump_seed];
         let escrow_authority_signer_seeds = collect_escrow_authority_signer_seeds(&bump_seed);
-
         let decimals = {
             let mint_data = mint_info.try_borrow_data()?;
             let mint = StateWithExtensions::<Mint>::unpack(&mint_data)?;
@@ -294,9 +391,13 @@ fn process_withdraw(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramRes
 pub fn process(program_id: &Pubkey, accounts: &[AccountInfo], input: &[u8]) -> ProgramResult {
     let instruction = PaladinLockupInstruction::unpack(input)?;
     match instruction {
-        PaladinLockupInstruction::Lockup { amount } => {
+        PaladinLockupInstruction::InitializeLockupPool => {
+            msg!("Instruction: InitializeLockupPool");
+            process_initialize_lockup_pool(program_id, accounts)
+        }
+        PaladinLockupInstruction::Lockup { metadata, amount } => {
             msg!("Instruction: Lockup");
-            process_lockup(program_id, accounts, amount)
+            process_lockup(program_id, accounts, metadata, amount)
         }
         PaladinLockupInstruction::Unlock => {
             msg!("Instruction: Unlock");

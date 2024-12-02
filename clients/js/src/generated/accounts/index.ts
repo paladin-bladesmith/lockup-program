@@ -7,3 +7,4 @@
  */
 
 export * from './lockup';
+export * from './lockupPool';

@@ -23,6 +23,9 @@ pub enum PaladinLockupError {
     /// 4 - Lockup already unlocked.
     #[error("Lockup already unlocked.")]
     LockupAlreadyUnlocked = 0x4,
+    /// 5 - Amount too low.
+    #[error("Amount too low.")]
+    AmountTooLow = 0x5,
 }
 
 impl solana_program::program_error::PrintProgramError for PaladinLockupError {
