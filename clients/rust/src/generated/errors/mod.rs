@@ -3,9 +3,7 @@
 //! to add features, then rerun kinobi to update it.
 //!
 //! <https://github.com/kinobi-so/kinobi>
-//!
 
-      pub(crate) mod paladin_lockup;
-  
-      pub use self::paladin_lockup::PaladinLockupError;
-  
+pub(crate) mod paladin_lockup;
+
+pub use self::paladin_lockup::PaladinLockupError;

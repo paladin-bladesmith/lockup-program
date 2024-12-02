@@ -3,9 +3,7 @@
 //! to add features, then rerun kinobi to update it.
 //!
 //! <https://github.com/kinobi-so/kinobi>
-//!
 
-  pub(crate) mod r#lockup_pool_entry;
+pub(crate) mod r#lockup_pool_entry;
 
-  pub use self::r#lockup_pool_entry::*;
-
+pub use self::r#lockup_pool_entry::*;

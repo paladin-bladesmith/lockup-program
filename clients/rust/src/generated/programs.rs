@@ -3,11 +3,8 @@
 //! to add features, then rerun kinobi to update it.
 //!
 //! <https://github.com/kinobi-so/kinobi>
-//!
 
 use solana_program::{pubkey, pubkey::Pubkey};
 
-
-  /// `paladin_lockup` program ID.
-  pub const PALADIN_LOCKUP_ID: Pubkey = pubkey!("4m9UhNYPXDHmBJ6qfn6zBjtA8xiKwz1w8Jd7TQ1Ref7e");
-
+/// `paladin_lockup` program ID.
+pub const PALADIN_LOCKUP_ID: Pubkey = pubkey!("4m9UhNYPXDHmBJ6qfn6zBjtA8xiKwz1w8Jd7TQ1Ref7e");
