@@ -118,7 +118,7 @@ pub async fn setup_lockup_pool(context: &mut ProgramTestContext, address: &Pubke
     // Setup lockup pool account data.
     let state = LockupPool {
         discriminator: LockupPool::SPL_DISCRIMINATOR.into(),
-        entries: [LockupPoolEntry::default(); 256],
+        entries: [LockupPoolEntry::default(); 1024],
         entries_len: 0,
     };
     let data = bytemuck::bytes_of(&state).to_vec();

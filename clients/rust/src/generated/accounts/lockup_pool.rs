@@ -14,12 +14,12 @@ use {
 pub struct LockupPool {
     pub discriminator: [u8; 8],
     #[cfg_attr(feature = "serde", serde(with = "serde_with::As::<serde_with::Bytes>"))]
-    pub entries: [LockupPoolEntry; 256],
+    pub entries: [LockupPoolEntry; 1024],
     pub entries_len: u64,
 }
 
 impl LockupPool {
-    pub const LEN: usize = 10256;
+    pub const LEN: usize = 40976;
 
     #[inline(always)]
     pub fn from_bytes(data: &[u8]) -> Result<Self, std::io::Error> {

@@ -54,7 +54,7 @@ export type LockupPoolArgs = {
 export function getLockupPoolEncoder(): Encoder<LockupPoolArgs> {
   return getStructEncoder([
     ['discriminator', getArrayEncoder(getU8Encoder(), { size: 8 })],
-    ['entries', getArrayEncoder(getLockupPoolEntryEncoder(), { size: 256 })],
+    ['entries', getArrayEncoder(getLockupPoolEntryEncoder(), { size: 1024 })],
     ['entriesLen', getU64Encoder()],
   ]);
 }
@@ -62,7 +62,7 @@ export function getLockupPoolEncoder(): Encoder<LockupPoolArgs> {
 export function getLockupPoolDecoder(): Decoder<LockupPool> {
   return getStructDecoder([
     ['discriminator', getArrayDecoder(getU8Decoder(), { size: 8 })],
-    ['entries', getArrayDecoder(getLockupPoolEntryDecoder(), { size: 256 })],
+    ['entries', getArrayDecoder(getLockupPoolEntryDecoder(), { size: 1024 })],
     ['entriesLen', getU64Decoder()],
   ]);
 }
@@ -125,5 +125,5 @@ export async function fetchAllMaybeLockupPool(
 }
 
 export function getLockupPoolSize(): number {
-  return 10256;
+  return 40976;
 }

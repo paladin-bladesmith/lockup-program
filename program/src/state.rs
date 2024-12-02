@@ -35,13 +35,13 @@ pub(crate) fn collect_escrow_authority_signer_seeds(bump_seed: &[u8]) -> [&[u8];
 #[repr(C)]
 pub struct LockupPool {
     pub discriminator: [u8; 8],
-    pub entries: [LockupPoolEntry; 256],
+    pub entries: [LockupPoolEntry; 1024],
     pub entries_len: usize,
 }
 
 impl LockupPool {
     pub const LEN: usize = std::mem::size_of::<LockupPool>();
-    pub const LOCKUP_CAPACITY: usize = 256;
+    pub const LOCKUP_CAPACITY: usize = 1024;
 
     const _ASSERT_LOCKUP_CAPACITY: () = assert!(
         Self::LOCKUP_CAPACITY * std::mem::size_of::<LockupPoolEntry>() + 8 + 8 == Self::LEN

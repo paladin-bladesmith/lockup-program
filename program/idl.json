@@ -242,7 +242,7 @@
                 {
                   "defined": "LockupPoolEntry"
                 },
-                256
+                1024
               ]
             }
           },
