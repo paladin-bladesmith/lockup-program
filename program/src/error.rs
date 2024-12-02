@@ -1,5 +1,6 @@
 //! Program error types.
 use {
+    num_derive::FromPrimitive,
     solana_program::{
         decode_error::DecodeError,
         msg,
@@ -10,7 +11,7 @@ use {
 
 /// Errors that can be returned by the Paladin Lockup program.
 // Note: Shank does not export the type when we use `spl_program_error`.
-#[derive(Error, Clone, Debug, Eq, PartialEq)]
+#[derive(Error, Clone, Debug, Eq, PartialEq, FromPrimitive)]
 pub enum PaladinLockupError {
     /// Incorrect mint.
     #[error("Incorrect mint.")]
