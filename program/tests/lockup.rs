@@ -12,6 +12,7 @@ use {
     solana_sdk::{
         account::{Account, AccountSharedData},
         clock::Clock,
+        compute_budget::ComputeBudgetInstruction,
         instruction::InstructionError,
         pubkey::Pubkey,
         signature::Keypair,
@@ -476,6 +477,7 @@ async fn success(amount: u64) {
         );
     }
 
+    let cu_limit = ComputeBudgetInstruction::set_compute_unit_limit(300_000);
     let instruction = paladin_lockup_program::instruction::lockup(
         &lockup_authority.pubkey(),
         &token_owner.pubkey(),
@@ -489,7 +491,7 @@ async fn success(amount: u64) {
     );
 
     let transaction = Transaction::new_signed_with_payer(
-        &[instruction],
+        &[cu_limit, instruction],
         Some(&context.payer.pubkey()),
         &[&context.payer, &token_owner],
         context.last_blockhash,
@@ -663,7 +665,7 @@ async fn lockup_pool_scenarios() {
         .unwrap_err()
         .unwrap(),
         TransactionError::InstructionError(
-            0,
+            1, // 0 is compute budget IX
             InstructionError::Custom(PaladinLockupError::AmountTooLow as u32)
         )
     );
@@ -689,6 +691,7 @@ async fn initialize_lockup(
     );
 
     // Initialize the lockup.
+    let cu_limit = ComputeBudgetInstruction::set_compute_unit_limit(300_000);
     let instruction = paladin_lockup_program::instruction::lockup(
         &lockup_authority,
         &token_owner.pubkey(),
@@ -701,7 +704,7 @@ async fn initialize_lockup(
         &spl_token_2022::id(),
     );
     let transaction = Transaction::new_signed_with_payer(
-        &[instruction],
+        &[cu_limit, instruction],
         Some(&context.payer.pubkey()),
         &[&context.payer, token_owner],
         context.last_blockhash,

@@ -14,6 +14,7 @@ use {
     solana_program_test::*,
     solana_sdk::{
         clock::Clock,
+        compute_budget::ComputeBudgetInstruction,
         instruction::{Instruction, InstructionError},
         pubkey::Pubkey,
         signature::Keypair,
@@ -285,11 +286,14 @@ async fn test_e2e() {
     {
         send_transaction(
             &mut context,
-            &[paladin_lockup_program::instruction::unlock(
-                &alice.pubkey(),
-                pool.pubkey(),
-                &alice_lockup.pubkey(),
-            )],
+            &[
+                ComputeBudgetInstruction::set_compute_unit_limit(300_000),
+                paladin_lockup_program::instruction::unlock(
+                    &alice.pubkey(),
+                    pool.pubkey(),
+                    &alice_lockup.pubkey(),
+                ),
+            ],
             &[&payer, &alice],
         )
         .await;

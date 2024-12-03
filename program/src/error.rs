@@ -1,4 +1,6 @@
+#![allow(non_local_definitions)]
 //! Program error types.
+
 use {
     num_derive::FromPrimitive,
     solana_program::{
