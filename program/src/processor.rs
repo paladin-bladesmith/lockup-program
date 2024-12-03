@@ -51,7 +51,7 @@ fn process_initialize_lockup_pool(program_id: &Pubkey, accounts: &[AccountInfo])
 fn process_lockup(
     program_id: &Pubkey,
     accounts: &[AccountInfo],
-    metadata: Pubkey,
+    metadata: [u8; 32],
     amount: u64,
 ) -> ProgramResult {
     let accounts_iter = &mut accounts.iter();
@@ -114,11 +114,6 @@ fn process_lockup(
         return Err(PaladinLockupError::IncorrectEscrowTokenAccount.into());
     }
 
-    // Get the timestamp from the clock sysvar, and use it to determine the
-    // lockup start timestamp.
-    let clock = <Clock as Sysvar>::get()?;
-    let lockup_start_timestamp = clock.unix_timestamp as u64;
-
     // Write the data.
     let mut data = lockup_info.try_borrow_mut_data()?;
     *bytemuck::try_from_bytes_mut(&mut data).map_err(|_| ProgramError::InvalidAccountData)? =
@@ -126,7 +121,7 @@ fn process_lockup(
             discriminator: Lockup::SPL_DISCRIMINATOR.into(),
             amount,
             authority: *lockup_authority_info.key,
-            lockup_start_timestamp,
+            lockup_start_timestamp: Clock::get()?.unix_timestamp as u64,
             lockup_end_timestamp: None,
             mint: *mint_info.key,
             pool: *lockup_pool_info.key,

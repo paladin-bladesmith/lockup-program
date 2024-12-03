@@ -88,7 +88,7 @@ pub enum PaladinLockupInstruction {
         name = "token_program",
         description = "Token program"
     )]
-    Lockup { metadata:Pubkey, amount: u64 },
+    Lockup { metadata: [u8; 32], amount: u64 },
     /// Unlock a token lockup, enabling the tokens for withdrawal after cooldown.
     ///
     /// Accounts expected by this instruction:
@@ -190,7 +190,7 @@ impl PaladinLockupInstruction {
             Self::Lockup { metadata, amount } => {
                 let mut buf = Vec::with_capacity(1 + 32 + 8);
                 buf.push(1);
-                buf.extend_from_slice(&metadata.to_bytes());
+                buf.extend_from_slice(metadata.as_slice());
                 buf.extend_from_slice(&amount.to_le_bytes());
                 buf
             }
@@ -205,7 +205,7 @@ impl PaladinLockupInstruction {
         match input.split_first() {
             Some((&0, _)) => Ok(Self::InitializeLockupPool),
             Some((&1, rest)) if rest.len() == 40 => {
-                let metadata = Pubkey::new_from_array(rest[..32].try_into().unwrap());
+                let metadata = rest[..32].try_into().unwrap();
                 let amount = u64::from_le_bytes(rest[32..40].try_into().unwrap());
 
                 Ok(Self::Lockup { metadata, amount })
@@ -239,7 +239,7 @@ pub fn lockup(
     pool: Pubkey,
     lockup_address: &Pubkey,
     mint_address: &Pubkey,
-    metadata: Pubkey,
+    metadata: [u8; 32],
     amount: u64,
     token_program_id: &Pubkey,
 ) -> Instruction {
@@ -332,7 +332,7 @@ mod tests {
     #[test]
     fn test_pack_unpack_lockup() {
         test_pack_unpack(PaladinLockupInstruction::Lockup {
-            metadata: Pubkey::new_unique(),
+            metadata: Pubkey::new_unique().to_bytes(),
             amount: 42,
         });
     }

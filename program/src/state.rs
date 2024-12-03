@@ -78,8 +78,9 @@ pub struct Lockup {
     ///
     /// Pools enable storing top lockups for easy off-chain lookup.
     pub pool: Pubkey,
-    /// Address of any additional metadata (stored in another account).
-    pub metadata: Pubkey,
+    /// Additional metadata, may contain an address or any other bytes (like an
+    /// IP address).
+    pub metadata: [u8; 32],
 }
 
 impl Lockup {

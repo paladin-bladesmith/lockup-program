@@ -204,7 +204,7 @@ async fn test_e2e() {
                     pool.pubkey(),
                     &alice_lockup.pubkey(),
                     &mint,
-                    metadata,
+                    metadata.to_bytes(),
                     alice_lockup_amount,
                     &spl_token_2022::id(),
                 ),
@@ -227,7 +227,7 @@ async fn test_e2e() {
                 lockup_end_timestamp: None,
                 mint,
                 pool: pool.pubkey(),
-                metadata,
+                metadata: metadata.to_bytes(),
             },
         )
         .await;

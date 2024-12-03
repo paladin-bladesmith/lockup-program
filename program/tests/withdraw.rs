@@ -301,7 +301,7 @@ async fn fail_incorrect_escrow_authority_address() {
             lockup_end_timestamp: NonZeroU64::new(clock.unix_timestamp as u64), // Unlocked.
             mint,
             pool,
-            metadata: Pubkey::new_unique(),
+            metadata: Pubkey::new_unique().to_bytes(),
         },
     )
     .await;
@@ -380,7 +380,7 @@ async fn fail_incorrect_escrow_token_account_address() {
             lockup_end_timestamp: NonZeroU64::new(clock.unix_timestamp as u64), // Unlocked.
             mint,
             pool,
-            metadata: Pubkey::new_unique(),
+            metadata: Pubkey::new_unique().to_bytes(),
         },
     )
     .await;
@@ -459,7 +459,7 @@ async fn fail_lockup_still_active() {
             lockup_end_timestamp: NonZeroU64::new(clock.unix_timestamp as u64), // Unlocked.
             mint,
             pool,
-            metadata: Pubkey::new_unique(),
+            metadata: Pubkey::new_unique().to_bytes(),
         },
     )
     .await;
@@ -537,7 +537,7 @@ async fn fail_incorrect_lockup_authority() {
             lockup_end_timestamp: NonZeroU64::new(clock.unix_timestamp as u64), // Unlocked.
             mint,
             pool,
-            metadata: Pubkey::new_unique(),
+            metadata: Pubkey::new_unique().to_bytes(),
         },
     )
     .await;
@@ -612,7 +612,7 @@ async fn fail_incorrect_mint() {
             lockup_end_timestamp: NonZeroU64::new(clock.unix_timestamp as u64), // Unlocked.
             mint: Pubkey::new_unique(),                                         // Incorrect mint.
             pool,
-            metadata: Pubkey::new_unique(),
+            metadata: Pubkey::new_unique().to_bytes(),
         },
     )
     .await;
@@ -700,7 +700,7 @@ async fn success() {
             lockup_end_timestamp: NonZeroU64::new(clock.unix_timestamp as u64), // Unlocked.
             mint,
             pool,
-            metadata: Pubkey::new_unique(),
+            metadata: Pubkey::new_unique().to_bytes(),
         },
     )
     .await;

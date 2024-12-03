@@ -8,8 +8,10 @@
 
 import {
   combineCodec,
-  getAddressDecoder,
-  getAddressEncoder,
+  fixDecoderSize,
+  fixEncoderSize,
+  getBytesDecoder,
+  getBytesEncoder,
   getStructDecoder,
   getStructEncoder,
   getU64Decoder,
@@ -28,6 +30,7 @@ import {
   type IInstructionWithData,
   type ReadonlyAccount,
   type ReadonlySignerAccount,
+  type ReadonlyUint8Array,
   type TransactionSigner,
   type WritableAccount,
 } from '@solana/web3.js';
@@ -86,12 +89,12 @@ export type LockupInstruction<
 
 export type LockupInstructionData = {
   discriminator: number;
-  metadata: Address;
+  metadata: ReadonlyUint8Array;
   amount: bigint;
 };
 
 export type LockupInstructionDataArgs = {
-  metadata: Address;
+  metadata: ReadonlyUint8Array;
   amount: number | bigint;
 };
 
@@ -99,7 +102,7 @@ export function getLockupInstructionDataEncoder(): Encoder<LockupInstructionData
   return transformEncoder(
     getStructEncoder([
       ['discriminator', getU8Encoder()],
-      ['metadata', getAddressEncoder()],
+      ['metadata', fixEncoderSize(getBytesEncoder(), 32)],
       ['amount', getU64Encoder()],
     ]),
     (value) => ({ ...value, discriminator: 1 })
@@ -109,7 +112,7 @@ export function getLockupInstructionDataEncoder(): Encoder<LockupInstructionData
 export function getLockupInstructionDataDecoder(): Decoder<LockupInstructionData> {
   return getStructDecoder([
     ['discriminator', getU8Decoder()],
-    ['metadata', getAddressDecoder()],
+    ['metadata', fixDecoderSize(getBytesDecoder(), 32)],
     ['amount', getU64Decoder()],
   ]);
 }

@@ -4,10 +4,7 @@
 //!
 //! <https://github.com/kinobi-so/kinobi>
 
-use {
-    borsh::{BorshDeserialize, BorshSerialize},
-    solana_program::pubkey::Pubkey,
-};
+use borsh::{BorshDeserialize, BorshSerialize};
 
 /// Accounts.
 pub struct Lockup {
@@ -114,7 +111,7 @@ impl Default for LockupInstructionData {
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct LockupInstructionArgs {
-    pub metadata: Pubkey,
+    pub metadata: [u8; 32],
     pub amount: u64,
 }
 
@@ -143,7 +140,7 @@ pub struct LockupBuilder {
     escrow_token_account: Option<solana_program::pubkey::Pubkey>,
     token_mint: Option<solana_program::pubkey::Pubkey>,
     token_program: Option<solana_program::pubkey::Pubkey>,
-    metadata: Option<Pubkey>,
+    metadata: Option<[u8; 32]>,
     amount: Option<u64>,
     __remaining_accounts: Vec<solana_program::instruction::AccountMeta>,
 }
@@ -220,7 +217,7 @@ impl LockupBuilder {
         self
     }
     #[inline(always)]
-    pub fn metadata(&mut self, metadata: Pubkey) -> &mut Self {
+    pub fn metadata(&mut self, metadata: [u8; 32]) -> &mut Self {
         self.metadata = Some(metadata);
         self
     }
@@ -571,7 +568,7 @@ impl<'a, 'b> LockupCpiBuilder<'a, 'b> {
         self
     }
     #[inline(always)]
-    pub fn metadata(&mut self, metadata: Pubkey) -> &mut Self {
+    pub fn metadata(&mut self, metadata: [u8; 32]) -> &mut Self {
         self.instruction.metadata = Some(metadata);
         self
     }
@@ -695,7 +692,7 @@ struct LockupCpiBuilderInstruction<'a, 'b> {
     escrow_token_account: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     token_mint: Option<&'b solana_program::account_info::AccountInfo<'a>>,
     token_program: Option<&'b solana_program::account_info::AccountInfo<'a>>,
-    metadata: Option<Pubkey>,
+    metadata: Option<[u8; 32]>,
     amount: Option<u64>,
     /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.
     __remaining_accounts: Vec<(

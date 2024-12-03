@@ -99,7 +99,12 @@
       "args": [
         {
           "name": "metadata",
-          "type": "publicKey"
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
         },
         {
           "name": "amount",
@@ -297,7 +302,12 @@
           },
           {
             "name": "metadata",
-            "type": "publicKey"
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
           }
         ]
       }

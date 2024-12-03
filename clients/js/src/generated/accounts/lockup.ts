@@ -13,10 +13,14 @@ import {
   decodeAccount,
   fetchEncodedAccount,
   fetchEncodedAccounts,
+  fixDecoderSize,
+  fixEncoderSize,
   getAddressDecoder,
   getAddressEncoder,
   getArrayDecoder,
   getArrayEncoder,
+  getBytesDecoder,
+  getBytesEncoder,
   getStructDecoder,
   getStructEncoder,
   getU64Decoder,
@@ -33,6 +37,7 @@ import {
   type FetchAccountsConfig,
   type MaybeAccount,
   type MaybeEncodedAccount,
+  type ReadonlyUint8Array,
 } from '@solana/web3.js';
 import {
   getNullableU64Decoder,
@@ -49,7 +54,7 @@ export type Lockup = {
   lockupEndTimestamp: NullableU64;
   mint: Address;
   pool: Address;
-  metadata: Address;
+  metadata: ReadonlyUint8Array;
 };
 
 export type LockupArgs = {
@@ -60,7 +65,7 @@ export type LockupArgs = {
   lockupEndTimestamp: NullableU64Args;
   mint: Address;
   pool: Address;
-  metadata: Address;
+  metadata: ReadonlyUint8Array;
 };
 
 export function getLockupEncoder(): Encoder<LockupArgs> {
@@ -72,7 +77,7 @@ export function getLockupEncoder(): Encoder<LockupArgs> {
     ['lockupEndTimestamp', getNullableU64Encoder()],
     ['mint', getAddressEncoder()],
     ['pool', getAddressEncoder()],
-    ['metadata', getAddressEncoder()],
+    ['metadata', fixEncoderSize(getBytesEncoder(), 32)],
   ]);
 }
 
@@ -85,7 +90,7 @@ export function getLockupDecoder(): Decoder<Lockup> {
     ['lockupEndTimestamp', getNullableU64Decoder()],
     ['mint', getAddressDecoder()],
     ['pool', getAddressDecoder()],
-    ['metadata', getAddressDecoder()],
+    ['metadata', fixDecoderSize(getBytesDecoder(), 32)],
   ]);
 }
 

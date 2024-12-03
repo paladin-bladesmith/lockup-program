@@ -70,7 +70,7 @@ async fn fail_incorrect_lockup_owner() {
         pool,
         &lockup,
         &mint,
-        metadata,
+        metadata.to_bytes(),
         10_000,
         &spl_token_2022::id(),
     );
@@ -141,7 +141,7 @@ async fn fail_lockup_not_enough_space() {
         pool,
         &lockup,
         &mint,
-        metadata,
+        metadata.to_bytes(),
         10_000,
         &spl_token_2022::id(),
     );
@@ -220,7 +220,7 @@ async fn fail_lockup_already_initialized() {
         pool,
         &lockup,
         &mint,
-        metadata,
+        metadata.to_bytes(),
         10_000,
         &spl_token_2022::id(),
     );
@@ -292,7 +292,7 @@ async fn fail_incorrect_escrow_authority_address() {
         pool,
         &lockup,
         &mint,
-        metadata,
+        metadata.to_bytes(),
         10_000,
         &spl_token_2022::id(),
     );
@@ -368,7 +368,7 @@ async fn fail_incorrect_escrow_token_account_address() {
         pool,
         &lockup,
         &mint,
-        metadata,
+        metadata.to_bytes(),
         10_000,
         &spl_token_2022::id(),
     );
@@ -483,7 +483,7 @@ async fn success(amount: u64) {
         pool,
         &lockup,
         &mint,
-        metadata,
+        metadata.to_bytes(),
         amount,
         &spl_token_2022::id(),
     );
@@ -521,7 +521,7 @@ async fn success(amount: u64) {
             lockup_end_timestamp: None,
             mint,
             pool,
-            metadata,
+            metadata: metadata.to_bytes(),
         },
     );
 
@@ -696,7 +696,7 @@ async fn initialize_lockup(
         pool,
         &lockup,
         &mint,
-        Pubkey::new_unique(), // Metadata.
+        Pubkey::new_unique().to_bytes(), // Metadata.
         amount,
         &spl_token_2022::id(),
     );

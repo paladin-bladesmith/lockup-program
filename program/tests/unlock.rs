@@ -166,7 +166,7 @@ async fn fail_incorrect_lockup_authority() {
             lockup_end_timestamp: None,
             mint: Pubkey::new_unique(),
             pool,
-            metadata: Pubkey::new_unique(),
+            metadata: Pubkey::new_unique().to_bytes(),
         },
     )
     .await;
@@ -220,7 +220,7 @@ async fn fail_lockup_already_unlocked() {
             lockup_end_timestamp: NonZeroU64::new(end),
             mint: Pubkey::new_unique(),
             pool,
-            metadata: Pubkey::new_unique(),
+            metadata: Pubkey::new_unique().to_bytes(),
         },
     )
     .await;
@@ -275,7 +275,7 @@ async fn success() {
             lockup_end_timestamp: None,
             mint: Pubkey::new_unique(),
             pool,
-            metadata: Pubkey::new_unique(),
+            metadata: Pubkey::new_unique().to_bytes(),
         },
     )
     .await;
