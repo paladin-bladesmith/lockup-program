@@ -156,6 +156,7 @@ fn process_lockup(
     *lockup_pool_state.entries.last_mut().unwrap() = LockupPoolEntry {
         lockup: *lockup_info.key,
         amount,
+        metadata,
     };
     lockup_pool_state.entries[index..].rotate_right(1);
 
@@ -242,12 +243,24 @@ fn process_unlock(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResul
     let clock = <Clock as Sysvar>::get()?;
     state.lockup_end_timestamp = NonZeroU64::new(clock.unix_timestamp as u64);
 
+    // Ensure the lockup matches the pool.
+    if lockup_pool_info.key != &state.pool {
+        return Err(PaladinLockupError::IncorrectPool.into());
+    }
+
     // Remove the entry from the pool (if it exists).
-    if let Some(index) = lockup_pool_state
+    let partition_point = lockup_pool_state
         .entries
-        .iter()
-        .position(|entry| &entry.lockup == lockup_info.key)
-    {
+        .partition_point(|entry| entry.amount > state.amount);
+    if partition_point != lockup_pool_state.entries_len {
+        let offset = lockup_pool_state.entries[partition_point..]
+            .iter()
+            .take_while(|entry| entry.amount == state.amount)
+            .position(|entry| &entry.lockup == lockup_info.key)
+            .unwrap();
+        #[allow(clippy::arithmetic_side_effects)]
+        let index = partition_point + offset;
+
         lockup_pool_state.entries[index] = LockupPoolEntry::default();
         lockup_pool_state.entries[index..].rotate_left(1);
         lockup_pool_state.entries_len = lockup_pool_state.entries_len.checked_sub(1).unwrap();

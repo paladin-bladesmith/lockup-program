@@ -7,6 +7,7 @@ use {
         error::PaladinLockupError,
         state::{get_escrow_authority_address, Lockup, LockupPool},
     },
+    rand::Rng,
     setup::{setup, setup_lockup_pool, setup_mint, setup_token_account},
     solana_program_test::*,
     solana_sdk::{
@@ -477,7 +478,7 @@ async fn success(amount: u64) {
         );
     }
 
-    let cu_limit = ComputeBudgetInstruction::set_compute_unit_limit(300_000);
+    let cu_limit = ComputeBudgetInstruction::set_compute_unit_limit(400_000);
     let instruction = paladin_lockup_program::instruction::lockup(
         &lockup_authority.pubkey(),
         &token_owner.pubkey(),
@@ -669,6 +670,71 @@ async fn lockup_pool_scenarios() {
             InstructionError::Custom(PaladinLockupError::AmountTooLow as u32)
         )
     );
+
+    // Act - Unlock the smallest lock.
+    let to_unlock = lockup_pool.entries[lockup_pool.entries_len - 1].lockup;
+    let instruction =
+        paladin_lockup_program::instruction::unlock(&lockup_authority.pubkey(), pool, &to_unlock);
+    let transaction = Transaction::new_signed_with_payer(
+        &[instruction],
+        Some(&context.payer.pubkey()),
+        &[&context.payer, &lockup_authority],
+        context.last_blockhash,
+    );
+    context
+        .banks_client
+        .process_transaction(transaction)
+        .await
+        .unwrap();
+
+    // Assert - Smallest lock is removed.
+    let lockup_pool = context
+        .banks_client
+        .get_account(pool)
+        .await
+        .unwrap()
+        .unwrap();
+    let lockup_pool = bytemuck::from_bytes::<LockupPool>(&lockup_pool.data);
+    let mut lockup_pool_sorted = *lockup_pool;
+    lockup_pool_sorted
+        .entries
+        .sort_by_key(|entry| Reverse(entry.amount));
+    assert_eq!(lockup_pool.entries_len, LockupPool::LOCKUP_CAPACITY - 1);
+    assert_eq!(lockup_pool, &lockup_pool_sorted);
+    assert_eq!(lockup_pool.entries[lockup_pool.entries_len - 1].amount, 3);
+
+    // Act - Unlock a random lock.
+    let index = rand::thread_rng().gen_range(0..lockup_pool.entries_len);
+    let to_unlock = lockup_pool.entries[index].lockup;
+    let instruction =
+        paladin_lockup_program::instruction::unlock(&lockup_authority.pubkey(), pool, &to_unlock);
+    let transaction = Transaction::new_signed_with_payer(
+        &[instruction],
+        Some(&context.payer.pubkey()),
+        &[&context.payer, &lockup_authority],
+        context.last_blockhash,
+    );
+    context
+        .banks_client
+        .process_transaction(transaction)
+        .await
+        .unwrap();
+
+    // Assert - Smallest lock is removed.
+    let lockup_pool = context
+        .banks_client
+        .get_account(pool)
+        .await
+        .unwrap()
+        .unwrap();
+    let lockup_pool = bytemuck::from_bytes::<LockupPool>(&lockup_pool.data);
+    let mut lockup_pool_sorted = *lockup_pool;
+    lockup_pool_sorted
+        .entries
+        .sort_by_key(|entry| Reverse(entry.amount));
+    assert_eq!(lockup_pool.entries_len, LockupPool::LOCKUP_CAPACITY - 2);
+    assert_eq!(lockup_pool, &lockup_pool_sorted);
+    assert_eq!(lockup_pool.entries[lockup_pool.entries_len - 1].amount, 3);
 }
 
 async fn initialize_lockup(
@@ -691,7 +757,7 @@ async fn initialize_lockup(
     );
 
     // Initialize the lockup.
-    let cu_limit = ComputeBudgetInstruction::set_compute_unit_limit(300_000);
+    let cu_limit = ComputeBudgetInstruction::set_compute_unit_limit(400_000);
     let instruction = paladin_lockup_program::instruction::lockup(
         &lockup_authority,
         &token_owner.pubkey(),

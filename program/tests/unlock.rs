@@ -20,7 +20,7 @@ use {
 };
 
 #[tokio::test]
-async fn fail_lockup_authority_not_signer() {
+async fn fail_unlock_authority_not_signer() {
     let mut context = setup().start_with_context().await;
 
     let authority = Keypair::new();
@@ -55,7 +55,7 @@ async fn fail_lockup_authority_not_signer() {
 }
 
 #[tokio::test]
-async fn fail_lockup_not_enough_space() {
+async fn fail_unlock_not_enough_space() {
     let mut context = setup().start_with_context().await;
 
     let authority = Keypair::new();
@@ -100,7 +100,7 @@ async fn fail_lockup_not_enough_space() {
 }
 
 #[tokio::test]
-async fn fail_lockup_uninitialized() {
+async fn fail_unlock_uninitialized() {
     let mut context = setup().start_with_context().await;
 
     let authority = Keypair::new();
@@ -195,7 +195,7 @@ async fn fail_incorrect_lockup_authority() {
 }
 
 #[tokio::test]
-async fn fail_lockup_already_unlocked() {
+async fn fail_unlock_already_unlocked() {
     let mut context = setup().start_with_context().await;
 
     let authority = Keypair::new();
@@ -247,6 +247,61 @@ async fn fail_lockup_already_unlocked() {
         TransactionError::InstructionError(
             0,
             InstructionError::Custom(PaladinLockupError::LockupAlreadyUnlocked as u32)
+        )
+    );
+}
+
+#[tokio::test]
+async fn fail_unlock_incorrect_pool() {
+    let mut context = setup().start_with_context().await;
+
+    let authority = Keypair::new();
+    let lockup = Pubkey::new_unique();
+
+    // Create the lockup pool account.
+    let pool1 = Pubkey::new_unique();
+    setup_lockup_pool(&mut context, &pool1).await;
+    let pool2 = Pubkey::new_unique();
+    setup_lockup_pool(&mut context, &pool2).await;
+
+    setup_lockup(
+        &mut context,
+        &lockup,
+        Lockup {
+            discriminator: Lockup::SPL_DISCRIMINATOR.into(),
+            amount: 10_000,
+            authority: authority.pubkey(),
+            lockup_start_timestamp: 10,
+            lockup_end_timestamp: None,
+            mint: Pubkey::new_unique(),
+            pool: pool1,
+            metadata: Pubkey::new_unique().to_bytes(),
+        },
+    )
+    .await;
+
+    let instruction =
+        paladin_lockup_program::instruction::unlock(&authority.pubkey(), pool2, &lockup);
+
+    let transaction = Transaction::new_signed_with_payer(
+        &[instruction],
+        Some(&context.payer.pubkey()),
+        &[&context.payer, &authority],
+        context.last_blockhash,
+    );
+
+    let err = context
+        .banks_client
+        .process_transaction(transaction)
+        .await
+        .unwrap_err()
+        .unwrap();
+
+    assert_eq!(
+        err,
+        TransactionError::InstructionError(
+            0,
+            InstructionError::Custom(PaladinLockupError::IncorrectPool as u32)
         )
     );
 }

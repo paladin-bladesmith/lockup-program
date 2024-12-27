@@ -33,6 +33,9 @@ pub enum PaladinLockupError {
     /// The amount was too low to be entered into the pool.
     #[error("Amount too low.")]
     AmountTooLow,
+    /// The provided pool account did not match the lockup.
+    #[error("Incorrect pool account")]
+    IncorrectPool,
 }
 
 impl PrintProgramError for PaladinLockupError {

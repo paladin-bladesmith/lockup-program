@@ -253,7 +253,8 @@ async fn test_e2e() {
             actual_lockup.entries[0],
             LockupPoolEntry {
                 amount: alice_lockup_amount,
-                lockup: alice_lockup.pubkey()
+                lockup: alice_lockup.pubkey(),
+                metadata: metadata.to_bytes(),
             }
         );
     }
@@ -287,7 +288,7 @@ async fn test_e2e() {
         send_transaction(
             &mut context,
             &[
-                ComputeBudgetInstruction::set_compute_unit_limit(300_000),
+                ComputeBudgetInstruction::set_compute_unit_limit(400_000),
                 paladin_lockup_program::instruction::unlock(
                     &alice.pubkey(),
                     pool.pubkey(),
