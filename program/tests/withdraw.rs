@@ -41,7 +41,7 @@ async fn fail_lockup_authority_not_signer() {
 
     let lockup = Pubkey::new_unique();
 
-    let context = setup().start_with_context().await;
+    let mut context = setup().start_with_context().await;
 
     let mut instruction = paladin_lockup_program::instruction::withdraw(
         &authority.pubkey(),

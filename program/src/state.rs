@@ -52,7 +52,9 @@ impl LockupPool {
 #[derive(Default, Clone, Copy, Debug, PartialEq, ShankType, Pod, Zeroable)]
 #[repr(C)]
 pub struct LockupPoolEntry {
+    // TODO: Remove, we don't need this.
     pub lockup: Pubkey,
+    // TODO: Add `meta: [u8; 32]`.
     pub amount: u64,
 }
 
