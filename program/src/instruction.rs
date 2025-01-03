@@ -242,6 +242,7 @@ pub fn lockup(
     metadata: [u8; 32],
     amount: u64,
     token_program_id: &Pubkey,
+    extra_accounts: &[AccountMeta],
 ) -> Instruction {
     let escrow_authority_address = get_escrow_authority_address(&crate::id());
     let escrow_token_account_address = get_associated_token_address_with_program_id(
@@ -249,17 +250,21 @@ pub fn lockup(
         mint_address,
         token_program_id,
     );
-    let accounts = vec![
-        AccountMeta::new_readonly(*lockup_authority_address, false),
-        AccountMeta::new_readonly(*token_owner_address, true),
-        AccountMeta::new(*token_account_address, false),
-        AccountMeta::new(pool, false),
-        AccountMeta::new(*lockup_address, false),
-        AccountMeta::new_readonly(escrow_authority_address, false),
-        AccountMeta::new(escrow_token_account_address, false),
-        AccountMeta::new_readonly(*mint_address, false),
-        AccountMeta::new_readonly(*token_program_id, false),
-    ];
+    let accounts = [
+        &[
+            AccountMeta::new_readonly(*lockup_authority_address, false),
+            AccountMeta::new_readonly(*token_owner_address, true),
+            AccountMeta::new(*token_account_address, false),
+            AccountMeta::new(pool, false),
+            AccountMeta::new(*lockup_address, false),
+            AccountMeta::new_readonly(escrow_authority_address, false),
+            AccountMeta::new(escrow_token_account_address, false),
+            AccountMeta::new_readonly(*mint_address, false),
+            AccountMeta::new_readonly(*token_program_id, false),
+        ],
+        extra_accounts,
+    ]
+    .concat();
     let data = PaladinLockupInstruction::Lockup { metadata, amount }.pack();
 
     Instruction::new_with_bytes(crate::id(), &data, accounts)

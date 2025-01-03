@@ -208,6 +208,7 @@ async fn test_e2e() {
                     metadata.to_bytes(),
                     alice_lockup_amount,
                     &spl_token_2022::id(),
+                    &[],
                 ),
             ],
             &[&payer, &alice, &alice_lockup],

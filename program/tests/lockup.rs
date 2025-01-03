@@ -75,6 +75,7 @@ async fn fail_incorrect_lockup_owner() {
         metadata.to_bytes(),
         10_000,
         &spl_token_2022::id(),
+        &[],
     );
 
     let transaction = Transaction::new_signed_with_payer(
@@ -146,6 +147,7 @@ async fn fail_lockup_not_enough_space() {
         metadata.to_bytes(),
         10_000,
         &spl_token_2022::id(),
+        &[],
     );
 
     let transaction = Transaction::new_signed_with_payer(
@@ -225,6 +227,7 @@ async fn fail_lockup_already_initialized() {
         metadata.to_bytes(),
         10_000,
         &spl_token_2022::id(),
+        &[],
     );
 
     let transaction = Transaction::new_signed_with_payer(
@@ -297,6 +300,7 @@ async fn fail_incorrect_escrow_authority_address() {
         metadata.to_bytes(),
         10_000,
         &spl_token_2022::id(),
+        &[],
     );
     instruction.accounts[5].pubkey = Pubkey::new_unique(); // Incorrect escrow authority address.
 
@@ -373,6 +377,7 @@ async fn fail_incorrect_escrow_token_account_address() {
         metadata.to_bytes(),
         10_000,
         &spl_token_2022::id(),
+        &[],
     );
     instruction.accounts[6].pubkey = Pubkey::new_unique(); // Incorrect escrow token account address.
 
@@ -489,6 +494,7 @@ async fn success(amount: u64) {
         metadata.to_bytes(),
         amount,
         &spl_token_2022::id(),
+        &[],
     );
 
     let transaction = Transaction::new_signed_with_payer(
@@ -768,6 +774,7 @@ async fn initialize_lockup(
         Pubkey::new_unique().to_bytes(), // Metadata.
         amount,
         &spl_token_2022::id(),
+        &[],
     );
     let transaction = Transaction::new_signed_with_payer(
         &[cu_limit, instruction],
