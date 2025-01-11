@@ -20,11 +20,12 @@ async fn err_duplicate_initialize() {
     let rent = Rent::default().minimum_balance(LockupPool::LEN);
     let fund = system_instruction::transfer(&context.payer.pubkey(), &pool.pubkey(), rent);
     let allocate = system_instruction::allocate(&pool.pubkey(), LockupPool::LEN as u64);
+    let assign = system_instruction::assign(&pool.pubkey(), &paladin_lockup_program::ID);
     let initialize_lockup_pool =
         paladin_lockup_program::instruction::initialize_lockup_pool(pool.pubkey());
     let tx = Transaction::new_signed_with_payer(
-        &[fund, allocate, initialize_lockup_pool],
-        Some(&pool.pubkey()),
+        &[fund, allocate, assign, initialize_lockup_pool],
+        Some(&context.payer.pubkey()),
         &[&context.payer, &pool],
         context.last_blockhash,
     );
