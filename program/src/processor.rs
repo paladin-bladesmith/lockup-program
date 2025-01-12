@@ -40,6 +40,7 @@ fn process_initialize_lockup_pool(program_id: &Pubkey, accounts: &[AccountInfo])
     // Write the discriminator.
     let mut lockup_pool_data = lockup_pool_info.data.borrow_mut();
     let lockup_pool_state = bytemuck::from_bytes_mut::<LockupPool>(&mut lockup_pool_data);
+    assert_eq!(lockup_pool_state.discriminator, [0; 8]);
     lockup_pool_state.discriminator = LockupPool::SPL_DISCRIMINATOR.into();
 
     Ok(())
