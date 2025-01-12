@@ -30,25 +30,18 @@ use {
 /// [InitializeLockupPool](enum.PaladinInitializeLockupPoolInstruction.html)
 /// instruction.
 fn process_initialize_lockup_pool(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
-    solana_program::msg!("0");
     let accounts_iter = &mut accounts.iter();
-    solana_program::msg!("1");
     let lockup_pool_info = next_account_info(accounts_iter)?;
-    solana_program::msg!("2");
 
     // Validate the provided account.
     assert_eq!(lockup_pool_info.owner, program_id);
-    solana_program::msg!("3");
     assert_eq!(lockup_pool_info.data_len(), LockupPool::LEN);
-    solana_program::msg!("4");
 
     // Write the discriminator.
     let mut lockup_pool_data = lockup_pool_info.data.borrow_mut();
-    solana_program::msg!("5");
     let lockup_pool_state = bytemuck::from_bytes_mut::<LockupPool>(&mut lockup_pool_data);
-    solana_program::msg!("6");
+    assert_eq!(lockup_pool_state.discriminator, [0; 8]);
     lockup_pool_state.discriminator = LockupPool::SPL_DISCRIMINATOR.into();
-    solana_program::msg!("7");
 
     Ok(())
 }
