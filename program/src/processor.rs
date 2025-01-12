@@ -40,7 +40,10 @@ fn process_initialize_lockup_pool(program_id: &Pubkey, accounts: &[AccountInfo])
     // Write the discriminator.
     let mut lockup_pool_data = lockup_pool_info.data.borrow_mut();
     let lockup_pool_state = bytemuck::from_bytes_mut::<LockupPool>(&mut lockup_pool_data);
-    assert_eq!(lockup_pool_state.discriminator, [0; 8]);
+    assert_eq!(
+        lockup_pool_state.discriminator,
+        ArrayDiscriminator::UNINITIALIZED.as_slice()
+    );
     lockup_pool_state.discriminator = LockupPool::SPL_DISCRIMINATOR.into();
 
     Ok(())
@@ -96,21 +99,17 @@ fn process_lockup(
     }
 
     // Ensure the provided escrow authority address is correct.
-    if !escrow_authority_info
-        .key
-        .eq(&get_escrow_authority_address(program_id))
-    {
+    if escrow_authority_info.key != &get_escrow_authority_address(program_id) {
         return Err(PaladinLockupError::IncorrectEscrowAuthorityAddress.into());
     }
 
     // Ensure the provided escrow token account address is correct.
-    if !escrow_token_account_info
-        .key
-        .eq(&get_associated_token_address_with_program_id(
+    if escrow_token_account_info.key
+        != &get_associated_token_address_with_program_id(
             escrow_authority_info.key,
             mint_info.key,
             token_program_info.key,
-        ))
+        )
     {
         return Err(PaladinLockupError::IncorrectEscrowTokenAccount.into());
     }
@@ -219,8 +218,8 @@ fn process_unlock(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResul
     }
 
     // Ensure the lockup account is initialized.
-    if !(lockup_info.data_len() == std::mem::size_of::<Lockup>()
-        && &lockup_info.try_borrow_data()?[0..8] == Lockup::SPL_DISCRIMINATOR_SLICE)
+    if lockup_info.data_len() != std::mem::size_of::<Lockup>()
+        || &lockup_info.try_borrow_data()?[0..8] != Lockup::SPL_DISCRIMINATOR_SLICE
     {
         return Err(ProgramError::UninitializedAccount);
     }
@@ -299,8 +298,8 @@ fn process_withdraw(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramRes
     }
 
     // Ensure the lockup account is initialized.
-    if !(lockup_info.data_len() == std::mem::size_of::<Lockup>()
-        && &lockup_info.try_borrow_data()?[0..8] == Lockup::SPL_DISCRIMINATOR_SLICE)
+    if lockup_info.data_len() != std::mem::size_of::<Lockup>()
+        || &lockup_info.try_borrow_data()?[0..8] != Lockup::SPL_DISCRIMINATOR_SLICE
     {
         return Err(ProgramError::UninitializedAccount);
     }
@@ -308,18 +307,17 @@ fn process_withdraw(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramRes
     // Ensure the provided escrow authority address is correct.
     let (escrow_authority_address, bump_seed) =
         get_escrow_authority_address_and_bump_seed(program_id);
-    if !escrow_authority_info.key.eq(&escrow_authority_address) {
+    if escrow_authority_info.key != &escrow_authority_address {
         return Err(PaladinLockupError::IncorrectEscrowAuthorityAddress.into());
     }
 
     // Ensure the provided escrow token account address is correct.
-    if !escrow_token_account_info
-        .key
-        .eq(&get_associated_token_address_with_program_id(
+    if escrow_token_account_info.key
+        != &get_associated_token_address_with_program_id(
             escrow_authority_info.key,
             mint_info.key,
             token_program_info.key,
-        ))
+        )
     {
         return Err(PaladinLockupError::IncorrectEscrowTokenAccount.into());
     }
