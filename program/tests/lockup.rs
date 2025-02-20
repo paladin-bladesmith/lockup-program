@@ -557,6 +557,9 @@ async fn lockup_pool_scenarios() {
         &spl_token_2022::id(),
     );
 
+    // Setup the mint.
+    setup_mint(&mut context, &mint, &Pubkey::new_unique(), 100).await;
+
     // Create the lockup pool account.
     let pool = Pubkey::new_unique();
     setup_lockup_pool(&mut context, &pool, mint).await;

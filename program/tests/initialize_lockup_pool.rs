@@ -4,7 +4,7 @@ mod setup;
 
 use {
     paladin_lockup_program::state::{LockupPool, LockupPoolEntry},
-    setup::setup,
+    setup::{setup, setup_mint},
     solana_program_test::*,
     solana_sdk::{
         instruction::InstructionError,
@@ -23,6 +23,9 @@ async fn ok_initialize() {
     let mut context = setup().start_with_context().await;
     let pool = Keypair::new();
     let mint = Pubkey::new_unique();
+
+    // Setup the mint.
+    setup_mint(&mut context, &mint, &Pubkey::new_unique(), 100).await;
 
     // Initialize the pool.
     let rent = Rent::default().minimum_balance(LockupPool::LEN);
@@ -64,6 +67,9 @@ async fn err_duplicate_initialize() {
     let mut context = setup().start_with_context().await;
     let pool = Keypair::new();
     let mint = Pubkey::new_unique();
+
+    // Setup the mint.
+    setup_mint(&mut context, &mint, &Pubkey::new_unique(), 100).await;
 
     // Initialize the pool once.
     let rent = Rent::default().minimum_balance(LockupPool::LEN);

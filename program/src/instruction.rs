@@ -21,7 +21,12 @@ pub enum PaladinLockupInstruction {
         name = "lockup_pool",
         description = "Lockup pool"
     )]
-    InitializeLockupPool { mint: Pubkey },
+    #[account(
+        1,
+        name = "mint",
+        description = "Mint"
+    )]
+    InitializeLockupPool,
     /// Lock up tokens in a lockup account for an unspecified period of time.
     ///
     /// Expects an uninitialized lockup account with enough rent-exempt
@@ -186,12 +191,7 @@ impl PaladinLockupInstruction {
     /// into a byte buffer.
     pub fn pack(&self) -> Vec<u8> {
         match self {
-            Self::InitializeLockupPool { mint } => {
-                let mut buf = Vec::with_capacity(1 + 32);
-                buf.push(0);
-                buf.extend_from_slice(&mint.to_bytes());
-                buf
-            }
+            Self::InitializeLockupPool => vec![0],
             Self::Lockup { metadata, amount } => {
                 let mut buf = Vec::with_capacity(1 + 32 + 8);
                 buf.push(1);
@@ -208,11 +208,7 @@ impl PaladinLockupInstruction {
     /// [PaladinLockupInstruction](enum.PaladinLockupInstruction.html).
     pub fn unpack(input: &[u8]) -> Result<Self, ProgramError> {
         match input.split_first() {
-            Some((&0, rest)) if rest.len() == 32 => {
-                let mint = Pubkey::new_from_array(rest.try_into().unwrap());
-
-                Ok(Self::InitializeLockupPool { mint })
-            }
+            Some((&0, _)) => Ok(Self::InitializeLockupPool),
             Some((&1, rest)) if rest.len() == 40 => {
                 let metadata = rest[..32].try_into().unwrap();
                 let amount = u64::from_le_bytes(rest[32..40].try_into().unwrap());
@@ -231,8 +227,11 @@ impl PaladinLockupInstruction {
 /// instruction.
 #[allow(clippy::too_many_arguments)]
 pub fn initialize_lockup_pool(pool: Pubkey, mint: Pubkey) -> Instruction {
-    let accounts = vec![AccountMeta::new(pool, false)];
-    let data = PaladinLockupInstruction::InitializeLockupPool { mint }.pack();
+    let accounts = vec![
+        AccountMeta::new(pool, false),
+        AccountMeta::new_readonly(mint, false),
+    ];
+    let data = PaladinLockupInstruction::InitializeLockupPool.pack();
 
     Instruction::new_with_bytes(crate::id(), &data, accounts)
 }
@@ -340,9 +339,7 @@ mod tests {
 
     #[test]
     fn test_pack_unpack_initialize_lockup_pool() {
-        test_pack_unpack(PaladinLockupInstruction::InitializeLockupPool {
-            mint: Pubkey::new_unique(),
-        });
+        test_pack_unpack(PaladinLockupInstruction::InitializeLockupPool);
     }
 
     #[test]

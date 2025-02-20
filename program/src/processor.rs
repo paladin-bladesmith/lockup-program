@@ -22,24 +22,35 @@ use {
     },
     spl_associated_token_account::get_associated_token_address_with_program_id,
     spl_discriminator::{ArrayDiscriminator, SplDiscriminate},
-    spl_token_2022::{extension::StateWithExtensions, state::Mint},
+    spl_token_2022::{
+        extension::{BaseStateWithExtensions, ExtensionType, StateWithExtensions},
+        state::Mint,
+    },
     std::{cmp::Reverse, num::NonZeroU64},
 };
 
 /// Processes a
 /// [InitializeLockupPool](enum.PaladinInitializeLockupPoolInstruction.html)
 /// instruction.
-fn process_initialize_lockup_pool(
-    program_id: &Pubkey,
-    accounts: &[AccountInfo],
-    mint: Pubkey,
-) -> ProgramResult {
+fn process_initialize_lockup_pool(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
     let accounts_iter = &mut accounts.iter();
     let lockup_pool_info = next_account_info(accounts_iter)?;
+    let mint_info = next_account_info(accounts_iter)?;
 
-    // Validate the provided account.
+    // Validate the lockup pool account.
     assert_eq!(lockup_pool_info.owner, program_id);
     assert_eq!(lockup_pool_info.data_len(), LockupPool::LEN);
+
+    // Validate the mint.
+    assert_eq!(mint_info.owner, &spl_token_2022::ID);
+    let mint_data = mint_info.try_borrow_data()?;
+    let mint = StateWithExtensions::<Mint>::unpack(&mint_data)?;
+    assert!(
+        mint.get_extension_types()?
+            .iter()
+            .all(|extension| matches!(extension, ExtensionType::TransferHook)),
+        "Invalid extension found in mint"
+    );
 
     // Write the discriminator & mint.
     let mut lockup_pool_data = lockup_pool_info.data.borrow_mut();
@@ -49,7 +60,7 @@ fn process_initialize_lockup_pool(
         ArrayDiscriminator::UNINITIALIZED.as_slice()
     );
     lockup_pool_state.discriminator = LockupPool::SPL_DISCRIMINATOR.into();
-    lockup_pool_state.mint = mint;
+    lockup_pool_state.mint = *mint_info.key;
 
     Ok(())
 }
@@ -409,9 +420,9 @@ fn process_withdraw(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramRes
 pub fn process(program_id: &Pubkey, accounts: &[AccountInfo], input: &[u8]) -> ProgramResult {
     let instruction = PaladinLockupInstruction::unpack(input)?;
     match instruction {
-        PaladinLockupInstruction::InitializeLockupPool { mint } => {
+        PaladinLockupInstruction::InitializeLockupPool => {
             msg!("Instruction: InitializeLockupPool");
-            process_initialize_lockup_pool(program_id, accounts, mint)
+            process_initialize_lockup_pool(program_id, accounts)
         }
         PaladinLockupInstruction::Lockup { metadata, amount } => {
             msg!("Instruction: Lockup");
