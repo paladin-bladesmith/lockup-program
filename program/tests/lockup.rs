@@ -718,7 +718,10 @@ async fn lockup_pool_scenarios() {
     let instruction =
         paladin_lockup_program::instruction::unlock(&lockup_authority.pubkey(), pool, &to_unlock);
     let transaction = Transaction::new_signed_with_payer(
-        &[instruction],
+        &[
+            ComputeBudgetInstruction::set_compute_unit_limit(500_000),
+            instruction,
+        ],
         Some(&context.payer.pubkey()),
         &[&context.payer, &lockup_authority],
         context.last_blockhash,

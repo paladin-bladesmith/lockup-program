@@ -92,12 +92,17 @@ fn process_lockup(
         lockup_pool_info.owner, program_id,
         "lockup_pool invalid owner"
     );
+    let mut lockup_pool_data = lockup_pool_info.data.borrow_mut();
     assert_eq!(
-        lockup_pool_info.data_len(),
+        lockup_pool_data.len(),
         LockupPool::LEN,
+        "lockup_pool incorrect size"
+    );
+    assert_eq!(
+        &lockup_pool_data[0..8],
+        LockupPool::SPL_DISCRIMINATOR_SLICE,
         "lockup_pool uninitialized"
     );
-    let mut lockup_pool_data = lockup_pool_info.data.borrow_mut();
     let lockup_pool_state = bytemuck::from_bytes_mut::<LockupPool>(&mut lockup_pool_data);
     assert_eq!(
         &lockup_pool_state.mint, mint_info.key,
