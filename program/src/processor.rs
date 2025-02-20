@@ -68,7 +68,8 @@ fn process_lockup(
     let escrow_authority_info = next_account_info(accounts_iter)?;
     let escrow_token_account_info = next_account_info(accounts_iter)?;
     let mint_info = next_account_info(accounts_iter)?;
-    let token_program_info = next_account_info(accounts_iter)?;
+    // NB: Token program is just needed for CPIs.
+    let _ = next_account_info(accounts_iter)?;
 
     // Validate & deserialize the lockup pool.
     assert_eq!(
@@ -108,7 +109,7 @@ fn process_lockup(
         != &get_associated_token_address_with_program_id(
             escrow_authority_info.key,
             mint_info.key,
-            token_program_info.key,
+            &spl_token_2022::ID,
         )
     {
         return Err(PaladinLockupError::IncorrectEscrowTokenAccount.into());
@@ -282,7 +283,8 @@ fn process_withdraw(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramRes
     let escrow_authority_info = next_account_info(accounts_iter)?;
     let escrow_token_account_info = next_account_info(accounts_iter)?;
     let mint_info = next_account_info(accounts_iter)?;
-    let token_program_info = next_account_info(accounts_iter)?;
+    // NB: Token program is just needed for CPIs.
+    let _ = next_account_info(accounts_iter)?;
 
     // Note that Token-2022's `TransferChecked` processor will assert the
     // provided token account is for the provided mint.
@@ -316,7 +318,7 @@ fn process_withdraw(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramRes
         != &get_associated_token_address_with_program_id(
             escrow_authority_info.key,
             mint_info.key,
-            token_program_info.key,
+            &spl_token_2022::ID,
         )
     {
         return Err(PaladinLockupError::IncorrectEscrowTokenAccount.into());
