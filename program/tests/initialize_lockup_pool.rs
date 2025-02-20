@@ -8,6 +8,7 @@ use {
     solana_program_test::*,
     solana_sdk::{
         instruction::InstructionError,
+        pubkey::Pubkey,
         rent::Rent,
         signature::Keypair,
         signer::Signer,
@@ -21,6 +22,7 @@ use {
 async fn ok_initialize() {
     let mut context = setup().start_with_context().await;
     let pool = Keypair::new();
+    let mint = Pubkey::new_unique();
 
     // Initialize the pool.
     let rent = Rent::default().minimum_balance(LockupPool::LEN);
@@ -28,7 +30,7 @@ async fn ok_initialize() {
     let allocate = system_instruction::allocate(&pool.pubkey(), LockupPool::LEN as u64);
     let assign = system_instruction::assign(&pool.pubkey(), &paladin_lockup_program::ID);
     let initialize_lockup_pool =
-        paladin_lockup_program::instruction::initialize_lockup_pool(pool.pubkey());
+        paladin_lockup_program::instruction::initialize_lockup_pool(pool.pubkey(), mint);
     let tx = Transaction::new_signed_with_payer(
         &[fund, allocate, assign, initialize_lockup_pool],
         Some(&context.payer.pubkey()),
@@ -50,6 +52,7 @@ async fn ok_initialize() {
         pool,
         &LockupPool {
             discriminator: LockupPool::SPL_DISCRIMINATOR.into(),
+            mint,
             entries: [LockupPoolEntry::default(); 1024],
             entries_len: 0,
         }
@@ -60,6 +63,7 @@ async fn ok_initialize() {
 async fn err_duplicate_initialize() {
     let mut context = setup().start_with_context().await;
     let pool = Keypair::new();
+    let mint = Pubkey::new_unique();
 
     // Initialize the pool once.
     let rent = Rent::default().minimum_balance(LockupPool::LEN);
@@ -67,7 +71,7 @@ async fn err_duplicate_initialize() {
     let allocate = system_instruction::allocate(&pool.pubkey(), LockupPool::LEN as u64);
     let assign = system_instruction::assign(&pool.pubkey(), &paladin_lockup_program::ID);
     let initialize_lockup_pool =
-        paladin_lockup_program::instruction::initialize_lockup_pool(pool.pubkey());
+        paladin_lockup_program::instruction::initialize_lockup_pool(pool.pubkey(), mint);
     let tx = Transaction::new_signed_with_payer(
         &[fund, allocate, assign, initialize_lockup_pool.clone()],
         Some(&context.payer.pubkey()),

@@ -35,6 +35,7 @@ pub(crate) fn collect_escrow_authority_signer_seeds(bump_seed: &[u8]) -> [&[u8];
 #[repr(C)]
 pub struct LockupPool {
     pub discriminator: [u8; 8],
+    pub mint: Pubkey,
     pub entries: [LockupPoolEntry; 1024],
     pub entries_len: usize,
 }

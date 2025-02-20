@@ -174,7 +174,7 @@ async fn test_e2e() {
                 ),
                 system_instruction::allocate(&pool.pubkey(), space as u64),
                 system_instruction::assign(&pool.pubkey(), &paladin_lockup_program::id()),
-                paladin_lockup_program::instruction::initialize_lockup_pool(pool.pubkey()),
+                paladin_lockup_program::instruction::initialize_lockup_pool(pool.pubkey(), mint),
             ],
             &[&payer, &pool],
         )

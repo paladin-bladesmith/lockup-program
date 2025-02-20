@@ -25,10 +25,11 @@ async fn fail_unlock_authority_not_signer() {
 
     let authority = Keypair::new();
     let lockup = Pubkey::new_unique();
+    let mint = Pubkey::new_unique();
 
     // Create the lockup pool account.
     let pool = Pubkey::new_unique();
-    setup_lockup_pool(&mut context, &pool).await;
+    setup_lockup_pool(&mut context, &pool, mint).await;
 
     let mut instruction =
         paladin_lockup_program::instruction::unlock(&authority.pubkey(), pool, &lockup);
@@ -60,10 +61,11 @@ async fn fail_unlock_not_enough_space() {
 
     let authority = Keypair::new();
     let lockup = Pubkey::new_unique();
+    let mint = Pubkey::new_unique();
 
     // Create the lockup pool account.
     let pool = Pubkey::new_unique();
-    setup_lockup_pool(&mut context, &pool).await;
+    setup_lockup_pool(&mut context, &pool, mint).await;
 
     // Create the lockup account with not enough space.
     {
@@ -105,10 +107,11 @@ async fn fail_unlock_uninitialized() {
 
     let authority = Keypair::new();
     let lockup = Pubkey::new_unique();
+    let mint = Pubkey::new_unique();
 
     // Create the lockup pool account.
     let pool = Pubkey::new_unique();
-    setup_lockup_pool(&mut context, &pool).await;
+    setup_lockup_pool(&mut context, &pool, mint).await;
 
     // Create the lockup account with uninitialized state.
     {
@@ -150,10 +153,11 @@ async fn fail_incorrect_lockup_authority() {
 
     let authority = Keypair::new();
     let lockup = Pubkey::new_unique();
+    let mint = Pubkey::new_unique();
 
     // Create the lockup pool account.
     let pool = Pubkey::new_unique();
-    setup_lockup_pool(&mut context, &pool).await;
+    setup_lockup_pool(&mut context, &pool, mint).await;
 
     setup_lockup(
         &mut context,
@@ -200,10 +204,11 @@ async fn fail_unlock_already_unlocked() {
 
     let authority = Keypair::new();
     let lockup = Pubkey::new_unique();
+    let mint = Pubkey::new_unique();
 
     // Create the lockup pool account.
     let pool = Pubkey::new_unique();
-    setup_lockup_pool(&mut context, &pool).await;
+    setup_lockup_pool(&mut context, &pool, mint).await;
 
     // Actual timestamp doesn't matter for this test.
     let start = 100_000u64;
@@ -257,12 +262,13 @@ async fn fail_unlock_incorrect_pool() {
 
     let authority = Keypair::new();
     let lockup = Pubkey::new_unique();
+    let mint = Pubkey::new_unique();
 
     // Create the lockup pool account.
     let pool1 = Pubkey::new_unique();
-    setup_lockup_pool(&mut context, &pool1).await;
+    setup_lockup_pool(&mut context, &pool1, mint).await;
     let pool2 = Pubkey::new_unique();
-    setup_lockup_pool(&mut context, &pool2).await;
+    setup_lockup_pool(&mut context, &pool2, mint).await;
 
     setup_lockup(
         &mut context,
@@ -312,12 +318,13 @@ async fn success() {
 
     let authority = Keypair::new();
     let lockup = Pubkey::new_unique();
+    let mint = Pubkey::new_unique();
     let clock = context.banks_client.get_sysvar::<Clock>().await.unwrap();
     let start = clock.unix_timestamp as u64;
 
     // Create the lockup pool account.
     let pool = Pubkey::new_unique();
-    setup_lockup_pool(&mut context, &pool).await;
+    setup_lockup_pool(&mut context, &pool, mint).await;
 
     setup_lockup(
         &mut context,

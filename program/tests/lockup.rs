@@ -43,7 +43,7 @@ async fn fail_incorrect_lockup_owner() {
 
     // Create the lockup pool account.
     let pool = Pubkey::new_unique();
-    setup_lockup_pool(&mut context, &pool).await;
+    setup_lockup_pool(&mut context, &pool, mint).await;
 
     // Create the lockup account with the incorrect owner.
     let lockup = Pubkey::new_unique();
@@ -114,7 +114,7 @@ async fn fail_lockup_not_enough_space() {
 
     // Create the lockup pool account.
     let pool = Pubkey::new_unique();
-    setup_lockup_pool(&mut context, &pool).await;
+    setup_lockup_pool(&mut context, &pool, mint).await;
 
     setup_token_account(
         &mut context,
@@ -196,7 +196,7 @@ async fn fail_lockup_already_initialized() {
 
     // Create the lockup pool account.
     let pool = Pubkey::new_unique();
-    setup_lockup_pool(&mut context, &pool).await;
+    setup_lockup_pool(&mut context, &pool, mint).await;
 
     // Create the lockup account with initialized state.
     {
@@ -267,7 +267,7 @@ async fn fail_incorrect_escrow_authority_address() {
 
     // Create the lockup pool account.
     let pool = Pubkey::new_unique();
-    setup_lockup_pool(&mut context, &pool).await;
+    setup_lockup_pool(&mut context, &pool, mint).await;
 
     setup_token_account(
         &mut context,
@@ -344,7 +344,7 @@ async fn fail_incorrect_escrow_token_account_address() {
 
     // Create the lockup pool account.
     let pool = Pubkey::new_unique();
-    setup_lockup_pool(&mut context, &pool).await;
+    setup_lockup_pool(&mut context, &pool, mint).await;
 
     setup_token_account(
         &mut context,
@@ -469,7 +469,7 @@ async fn success(amount: u64) {
 
     // Create the lockup pool account.
     let pool = Pubkey::new_unique();
-    setup_lockup_pool(&mut context, &pool).await;
+    setup_lockup_pool(&mut context, &pool, mint).await;
 
     // Set up the lockup account correctly.
     {
@@ -559,7 +559,7 @@ async fn lockup_pool_scenarios() {
 
     // Create the lockup pool account.
     let pool = Pubkey::new_unique();
-    setup_lockup_pool(&mut context, &pool).await;
+    setup_lockup_pool(&mut context, &pool, mint).await;
 
     // Create the token account.
     let token_amount = 1_000_000_000;

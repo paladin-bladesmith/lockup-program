@@ -280,7 +280,7 @@ async fn fail_incorrect_escrow_authority_address() {
 
     // Create the lockup pool account.
     let pool = Pubkey::new_unique();
-    setup_lockup_pool(&mut context, &pool).await;
+    setup_lockup_pool(&mut context, &pool, mint).await;
 
     setup_token_account(
         &mut context,
@@ -359,7 +359,7 @@ async fn fail_incorrect_escrow_token_account_address() {
 
     // Create the lockup pool account.
     let pool = Pubkey::new_unique();
-    setup_lockup_pool(&mut context, &pool).await;
+    setup_lockup_pool(&mut context, &pool, mint).await;
 
     setup_token_account(
         &mut context,
@@ -438,7 +438,7 @@ async fn fail_lockup_still_active() {
 
     // Create the lockup pool account.
     let pool = Pubkey::new_unique();
-    setup_lockup_pool(&mut context, &pool).await;
+    setup_lockup_pool(&mut context, &pool, mint).await;
 
     setup_token_account(
         &mut context,
@@ -516,7 +516,7 @@ async fn fail_incorrect_lockup_authority() {
 
     // Create the lockup pool account.
     let pool = Pubkey::new_unique();
-    setup_lockup_pool(&mut context, &pool).await;
+    setup_lockup_pool(&mut context, &pool, mint).await;
 
     setup_token_account(
         &mut context,
@@ -591,7 +591,7 @@ async fn fail_incorrect_mint() {
 
     // Create the lockup pool account.
     let pool = Pubkey::new_unique();
-    setup_lockup_pool(&mut context, &pool).await;
+    setup_lockup_pool(&mut context, &pool, mint).await;
 
     setup_token_account(
         &mut context,
@@ -687,7 +687,7 @@ async fn success() {
 
     // Create the lockup pool account.
     let pool = Pubkey::new_unique();
-    setup_lockup_pool(&mut context, &pool).await;
+    setup_lockup_pool(&mut context, &pool, mint).await;
 
     setup_lockup(
         &mut context,

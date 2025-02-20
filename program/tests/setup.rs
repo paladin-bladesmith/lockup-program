@@ -114,10 +114,11 @@ pub async fn setup_system_account(
     );
 }
 
-pub async fn setup_lockup_pool(context: &mut ProgramTestContext, address: &Pubkey) {
+pub async fn setup_lockup_pool(context: &mut ProgramTestContext, address: &Pubkey, mint: Pubkey) {
     // Setup lockup pool account data.
     let state = LockupPool {
         discriminator: LockupPool::SPL_DISCRIMINATOR.into(),
+        mint,
         entries: [LockupPoolEntry::default(); 1024],
         entries_len: 0,
     };

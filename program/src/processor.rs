@@ -29,7 +29,11 @@ use {
 /// Processes a
 /// [InitializeLockupPool](enum.PaladinInitializeLockupPoolInstruction.html)
 /// instruction.
-fn process_initialize_lockup_pool(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
+fn process_initialize_lockup_pool(
+    program_id: &Pubkey,
+    accounts: &[AccountInfo],
+    mint: Pubkey,
+) -> ProgramResult {
     let accounts_iter = &mut accounts.iter();
     let lockup_pool_info = next_account_info(accounts_iter)?;
 
@@ -37,7 +41,7 @@ fn process_initialize_lockup_pool(program_id: &Pubkey, accounts: &[AccountInfo])
     assert_eq!(lockup_pool_info.owner, program_id);
     assert_eq!(lockup_pool_info.data_len(), LockupPool::LEN);
 
-    // Write the discriminator.
+    // Write the discriminator & mint.
     let mut lockup_pool_data = lockup_pool_info.data.borrow_mut();
     let lockup_pool_state = bytemuck::from_bytes_mut::<LockupPool>(&mut lockup_pool_data);
     assert_eq!(
@@ -45,6 +49,7 @@ fn process_initialize_lockup_pool(program_id: &Pubkey, accounts: &[AccountInfo])
         ArrayDiscriminator::UNINITIALIZED.as_slice()
     );
     lockup_pool_state.discriminator = LockupPool::SPL_DISCRIMINATOR.into();
+    lockup_pool_state.mint = mint;
 
     Ok(())
 }
@@ -83,6 +88,10 @@ fn process_lockup(
     );
     let mut lockup_pool_data = lockup_pool_info.data.borrow_mut();
     let lockup_pool_state = bytemuck::from_bytes_mut::<LockupPool>(&mut lockup_pool_data);
+    assert_eq!(
+        &lockup_pool_state.mint, mint_info.key,
+        "Incorrect mint for lockup pool"
+    );
 
     // Ensure the lockup account is owned by the Paladin Lockup program.
     if lockup_info.owner != program_id {
@@ -400,9 +409,9 @@ fn process_withdraw(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramRes
 pub fn process(program_id: &Pubkey, accounts: &[AccountInfo], input: &[u8]) -> ProgramResult {
     let instruction = PaladinLockupInstruction::unpack(input)?;
     match instruction {
-        PaladinLockupInstruction::InitializeLockupPool => {
+        PaladinLockupInstruction::InitializeLockupPool { mint } => {
             msg!("Instruction: InitializeLockupPool");
-            process_initialize_lockup_pool(program_id, accounts)
+            process_initialize_lockup_pool(program_id, accounts, mint)
         }
         PaladinLockupInstruction::Lockup { metadata, amount } => {
             msg!("Instruction: Lockup");
