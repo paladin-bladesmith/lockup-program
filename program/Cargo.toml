@@ -16,7 +16,7 @@ shank = { workspace = true }
 solana-program = { workspace = true }
 spl-associated-token-account = { workspace = true, features = ["no-entrypoint"] }
 spl-discriminator = { workspace = true }
-spl-token-2022 = { workspace = true, features = ["no-entrypoint"] }
+spl-token-2022-interface = { workspace = true }
 thiserror = { workspace = true }
 
 [dev-dependencies]

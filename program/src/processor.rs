@@ -2,28 +2,19 @@
 
 use {
     crate::{
-        error::PaladinLockupError,
-        instruction::PaladinLockupInstruction,
-        state::{
-            collect_escrow_authority_signer_seeds, get_escrow_authority_address,
-            get_escrow_authority_address_and_bump_seed, Lockup, LockupPool, LockupPoolEntry,
-        },
-        LOCKUP_COOLDOWN_SECONDS,
-    },
-    solana_program::{
-        account_info::{next_account_info, AccountInfo},
+        LOCKUP_COOLDOWN_SECONDS, error::PaladinLockupError, instruction::PaladinLockupInstruction, state::{
+            Lockup, LockupPool, LockupPoolEntry, collect_escrow_authority_signer_seeds, get_escrow_authority_address, get_escrow_authority_address_and_bump_seed
+        }
+    }, solana_program::{
+        account_info::{AccountInfo, next_account_info},
         clock::Clock,
         entrypoint::ProgramResult,
+        example_mocks::solana_sdk::system_program,
         msg,
         program_error::ProgramError,
         pubkey::Pubkey,
-        system_program,
         sysvar::Sysvar,
-    },
-    spl_associated_token_account::get_associated_token_address_with_program_id,
-    spl_discriminator::{ArrayDiscriminator, SplDiscriminate},
-    spl_token_2022::{extension::StateWithExtensions, state::Mint},
-    std::{cmp::Reverse, num::NonZeroU64},
+    }, spl_associated_token_account::get_associated_token_address_with_program_id, spl_discriminator::{ArrayDiscriminator, SplDiscriminate}, spl_token_2022_interface::{extension::StateWithExtensions, state::Mint}, std::{cmp::Reverse, num::NonZeroU64}
 };
 
 /// Processes a
@@ -168,16 +159,26 @@ fn process_lockup(
             mint.base.decimals
         };
 
-        spl_token_2022::onchain::invoke_transfer_checked(
-            &spl_token_2022::id(),
-            token_account_info.clone(),
-            mint_info.clone(),
-            escrow_token_account_info.clone(),
-            token_owner_info.clone(),
-            accounts_iter.as_slice(),
+        let transfer_instruction = spl_token_2022_interface::instruction::transfer_checked(
+            token_program_info.key,
+            token_account_info.key,
+            mint_info.key,
+            escrow_token_account_info.key,
+            token_owner_info.key,
+            &[], // Empty slice since no additional signers needed
             amount,
             decimals,
-            &[],
+        )?;
+
+        solana_program::program::invoke(
+            &transfer_instruction,
+            &[
+                token_account_info.clone(),
+                mint_info.clone(),
+                escrow_token_account_info.clone(),
+                token_owner_info.clone(),
+                token_program_info.clone(),
+            ],
         )?;
     }
 
@@ -367,16 +368,27 @@ fn process_withdraw(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramRes
             mint.base.decimals
         };
 
-        spl_token_2022::onchain::invoke_transfer_checked(
-            &spl_token_2022::id(),
-            escrow_token_account_info.clone(),
-            mint_info.clone(),
-            token_destination_info.clone(),
-            escrow_authority_info.clone(),
-            accounts_iter.as_slice(),
+        let transfer_instruction = spl_token_2022_interface::instruction::transfer_checked(
+            token_program_info.key,
+            escrow_token_account_info.key,
+            mint_info.key,
+            token_destination_info.key,
+            escrow_authority_info.key,
+            &[escrow_authority_info.key], // Empty slice since no additional signers needed
             withdraw_amount,
             decimals,
-            &[&escrow_authority_signer_seeds],
+        )?;
+
+        solana_program::program::invoke_signed(
+            &transfer_instruction,
+            &[
+                escrow_token_account_info.clone(),
+                mint_info.clone(),
+                token_destination_info.clone(),
+                escrow_authority_info.clone(),
+                token_program_info.clone(),
+            ],
+            &[&escrow_authority_signer_seeds]
         )?;
     }
 
@@ -388,7 +400,7 @@ fn process_withdraw(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramRes
     **lockup_info.try_borrow_mut_lamports()? = 0;
     **lamport_destination_info.try_borrow_mut_lamports()? = new_destination_lamports;
 
-    lockup_info.realloc(0, true)?;
+    lockup_info.resize(0)?;
     lockup_info.assign(&system_program::id());
 
     Ok(())
