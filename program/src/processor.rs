@@ -14,7 +14,7 @@ use {
         program_error::ProgramError,
         pubkey::Pubkey,
         sysvar::Sysvar,
-    }, spl_associated_token_account::get_associated_token_address_with_program_id, spl_discriminator::{ArrayDiscriminator, SplDiscriminate}, spl_token_2022_interface::{extension::StateWithExtensions, state::Mint}, std::{cmp::Reverse, num::NonZeroU64}
+    }, spl_associated_token_account_interface::address::get_associated_token_address_with_program_id, spl_discriminator::{ArrayDiscriminator, SplDiscriminate}, spl_token_2022_interface::{extension::StateWithExtensions, state::Mint}, std::{cmp::Reverse, num::NonZeroU64}
 };
 
 /// Processes a

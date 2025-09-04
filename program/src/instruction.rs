@@ -7,8 +7,7 @@ use {
         instruction::{AccountMeta, Instruction},
         program_error::ProgramError,
         pubkey::Pubkey,
-    },
-    spl_associated_token_account::get_associated_token_address_with_program_id,
+    }, spl_associated_token_account_interface::address::get_associated_token_address_with_program_id,
 };
 
 /// Instructions supported by the Paladin Lockup program.
